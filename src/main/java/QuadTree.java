@@ -9,11 +9,11 @@ public class QuadTree
 {
     protected static int NODES = 0;
 
-    private QTNode root;
     private final int width;
     private final int height;
-    protected int points;
-    protected int nodes;
+    private int points;
+    private int nodes;
+    private QTNode root;
 
     public QuadTree(Data data)
     {
@@ -22,6 +22,8 @@ public class QuadTree
 
     public QuadTree(boolean[] data, int width, int height)
     {
+        if(data.length != width * height) throw new RuntimeException("");
+
         this.width = width;
         this.height = height;
         this.points = 0;
@@ -46,33 +48,27 @@ public class QuadTree
 
     private boolean getPoint(QTNode node, int x, int y)
     {
-        switch (node.colour)
+        if(node.isDivided())
         {
-            case Black:
-                return true;
-            case White:
-                return false;
-            case Grey:
-                if(x < node.minX + node.width / 2 && y < node.minY + node.height / 2)
-                {
-                    return getPoint(node.nw, x, y);
-                }
-                else if(x >= node.minX + node.width / 2 && y < node.minY + node.height / 2)
-                {
-                    return getPoint(node.ne, x, y);
-                }
-                else if(x >= node.minX + node.width / 2 && y >= node.minY + node.height / 2)
-                {
-                    return getPoint(node.se, x, y);
-                }
-                else
-                {
-                    return getPoint(node.sw, x, y);
-                }
+            if(x < node.minX + node.width / 2 && y < node.minY + node.height / 2)
+            {
+                return getPoint(node.nw, x, y);
+            }
+            else if(x >= node.minX + node.width / 2 && y < node.minY + node.height / 2)
+            {
+                return getPoint(node.ne, x, y);
+            }
+            else if(x >= node.minX + node.width / 2 && y >= node.minY + node.height / 2)
+            {
+                return getPoint(node.se, x, y);
+            }
+            else
+            {
+                return getPoint(node.sw, x, y);
+            }
         }
 
-        // unreachable statement
-        throw new RuntimeException("");
+        return node.colour;
     }
 
     public void setPoint(int x, int y, boolean b)
@@ -82,7 +78,7 @@ public class QuadTree
         QTNode node = root;
 
         // find the leaf quadrant that encodes the data for the specified coordinate
-        while(node.colour == QTNode.Colour.Grey)
+        while(node.isDivided())
         {
             if(x < node.minX + node.width / 2 && y < node.minY + node.height / 2)
             {
@@ -103,7 +99,7 @@ public class QuadTree
         }
 
         // if quadrant already encodes the appropriate value return
-        if(node.colour == (b ? QTNode.Colour.Black : QTNode.Colour.White)) return;
+        if(node.colour == b) return;
 
         // modify the number of points
         points += b ? 1 : -1;
@@ -111,7 +107,7 @@ public class QuadTree
         if(node.width == 1 && node.height == 1)
         {
             // recolour the quadrant
-            node.colour = b ? QTNode.Colour.Black : QTNode.Colour.White;
+            node.colour = b;
 
             // ask parent to check whether all children are now uniform
             node = node.parent;
@@ -119,6 +115,7 @@ public class QuadTree
             while (node != null && node.nw.colour == node.ne.colour && node.ne.colour == node.se.colour && node.se.colour == node.sw.colour)
             {
                 node.colour = node.nw.colour;
+                node.nw = node.ne = node.se = node.sw = null;
                 nodes -= 4;
                 node = node.parent;
             }
@@ -129,7 +126,7 @@ public class QuadTree
             boolean[] array = new boolean[node.width * node.height];
 
             // set the arrays data to match the quadrants original colour
-            if (node.colour == QTNode.Colour.Black) Arrays.fill(array, Boolean.TRUE);
+            if (node.colour) Arrays.fill(array, Boolean.TRUE);
 
             // modify the specified coordinate
             array[(x - node.minX) + (y - node.minY) * node.width] = b;
@@ -154,6 +151,16 @@ public class QuadTree
 
     public int getHeight() {
         return height;
+    }
+
+    public int getPoints()
+    {
+        return points;
+    }
+
+    public int getNodes()
+    {
+        return nodes;
     }
 
     public QTNode getRoot() {

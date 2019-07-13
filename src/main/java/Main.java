@@ -63,7 +63,7 @@ public class Main
 
     private static void drawNode(Graphics g, QTNode node)
     {
-        if(node.colour == QTNode.Colour.Grey)
+        if(node.isDivided())
         {
             drawNode(g, node.ne);
             drawNode(g, node.nw);
@@ -72,7 +72,7 @@ public class Main
         }
         else
         {
-            g.setColor(node.colour == QTNode.Colour.Black ? Color.BLACK : Color.WHITE);
+            g.setColor(node.colour ? Color.BLACK : Color.WHITE);
             g.fillRect(node.minX, node.minY, node.width, node.height);
             g.setColor(Color.RED);
             g.drawRect(node.minX, node.minY, node.width, node.height);

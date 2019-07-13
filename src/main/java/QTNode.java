@@ -4,7 +4,7 @@
  */
 public class QTNode
 {
-    protected Colour colour;                 // colour of the quadrant
+    protected boolean colour;                // colour of the quadrant
     protected final int width;               // width of the quadrant
     protected final int height;              // height of the quadrant
     protected final int minX;                // minimum x value of the quadrants region
@@ -34,7 +34,7 @@ public class QTNode
         }
 
         // the data in the quadrant is uniform, assign an appropriate colour to encode the value
-        colour = x ? Colour.Black : Colour.White;
+        colour = x;
 
         QuadTree.NODES++;
     }
@@ -42,8 +42,6 @@ public class QTNode
     // split the quadrant in to 4 sub-quadrants
     public void subDivide(boolean[] data)
     {
-        colour = Colour.Grey;
-
         // calculate dimensions of sub-quadrants
         int w1 = width / 2;
         int w2 = width - w1;
@@ -92,7 +90,6 @@ public class QTNode
         se = new QTNode(seData, minX + w1, minY + h1, w2, h2, this);
         nw = ne = sw = se;
 
-        //
         if(w1 != 0)
         {
             sw = new QTNode(swData, minX, minY + h1, w1, h2, this);
@@ -112,7 +109,7 @@ public class QTNode
     public void extractData(boolean[] data, int dataWidth, int dataHeight)
     {
         // if this quadrant encodes no data extract data from the sub-quadrants
-        if(colour == Colour.Grey)
+        if(isDivided())
         {
             nw.extractData(data, dataWidth, dataHeight);
             ne.extractData(data, dataWidth, dataHeight);
@@ -128,19 +125,14 @@ public class QTNode
             {
                 for (int y = 0; y < height; y++)
                 {
-                    data[minX + minY * dataWidth + x + y * dataWidth] = colour == Colour.Black;
+                    data[minX + minY * dataWidth + x + y * dataWidth] = colour;
                 }
             }
         }
     }
 
-    // all QTNodes are given a colour to identify its value, grey indicates that the quadrant is an internal node
-    // and that it contains sub quadrants with further detail. If a quadrant is coloured otherwise it is a leaf and
-    // the colour describes the value of the region spanned by the quadrant
-    public enum Colour
+    public boolean isDivided()
     {
-        Grey,
-        White,
-        Black
+        return nw != null;
     }
 }

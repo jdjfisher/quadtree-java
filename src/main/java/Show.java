@@ -44,7 +44,7 @@ public class Show
 
         public void drawNode(Graphics g, QTNode node)
         {
-            if(node.colour == QTNode.Colour.Grey)
+            if(node.isDivided())
             {
                 drawNode(g, node.ne);
                 drawNode(g, node.nw);
@@ -55,7 +55,7 @@ public class Show
             {
                 final int cellSize = Math.max(1, SIZE / (Math.max(qt.getWidth(), qt.getHeight()) + 2));
 
-                g.setColor(node.colour == QTNode.Colour.Black ? Color.BLACK : Color.WHITE);
+                g.setColor(node.colour ? Color.BLACK : Color.WHITE);
                 g.fillRect(node.minX * cellSize, node.minY * cellSize, node.width * cellSize, node.height * cellSize);
                 g.setColor(Color.RED);
                 g.drawRect(node.minX * cellSize, node.minY * cellSize, node.width * cellSize, node.height * cellSize);
