@@ -1,5 +1,4 @@
 import java.awt.*;
-import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
@@ -15,134 +14,215 @@ public class QuadTree
     private int nodes;
     private QTNode root;
 
-    public QuadTree(Data data)
-    {
-        this(data.points, data.width, data.height);
-    }
-
+    // primary constructor
     public QuadTree(boolean[] data, int width, int height)
     {
-        if(data.length != width * height) throw new RuntimeException("");
+        if(data.length != width * height) throw new RuntimeException();
 
         this.width = width;
         this.height = height;
         this.points = 0;
 
         NODES = 0;
-        root = new QTNode(data, 0, 0, width, height, null);
+        root = new QTNode(data, 0, 0, width, height);
         nodes = NODES;
 
-        // count the initial number of points
+        // count the initial number of pixels
         for(boolean x : data)
         {
             if (x) points++;
         }
     }
 
-    public boolean getPoint(int x, int y)
+    // copy constructor
+    public QuadTree(QuadTree qt)
     {
-        if(x >= width || y >= height) throw new RuntimeException("");
+        this.width = qt.width;
+        this.height = qt.height;
+        this.points = qt.points;
+        this.nodes = qt.nodes;
 
-        return getPoint(root, x, y);
+        root = new QTNode(qt.root);
     }
 
-    private boolean getPoint(QTNode node, int x, int y)
+    // empty constructor
+    public QuadTree(int width, int height)
     {
+        this(new boolean[width * height], width, height);
+    }
+
+    // determine whether there is a point stored at the specified coordinates
+    public boolean isPoint(int x, int y)
+    {
+        if(x < 0 || y < 0 || x >= width || y >= height) throw new RuntimeException();
+
+        return isPoint(root, 0, 0, width, height, x, y);
+    }
+
+    private boolean isPoint(QTNode node, int minX, int minY, int width, int height, int x, int y)
+    {
+        // recursively select sub-quadrants until the leaf node encoding the coordinate pair is found
         if(node.isDivided())
         {
-            if(x < node.minX + node.width / 2 && y < node.minY + node.height / 2)
+            // dimensions of sub-quadrants
+            final int w2 = width / 2;
+            final int w1 = width - w2;
+            final int h2 = height / 2;
+            final int h1 = height - h2;
+
+            if(x < minX + w1 && y < minY + h1)
             {
-                return getPoint(node.nw, x, y);
+                return isPoint(node.nw, minX, minY, w1, h1, x, y);
             }
-            else if(x >= node.minX + node.width / 2 && y < node.minY + node.height / 2)
+            else if(x >= minX + w1 && y < minY + h1)
             {
-                return getPoint(node.ne, x, y);
+                return isPoint(node.ne, minX + w1, minY, w2, h1, x, y);
             }
-            else if(x >= node.minX + node.width / 2 && y >= node.minY + node.height / 2)
+            else if(x < minX + w1 && y >= minY + h1)
             {
-                return getPoint(node.se, x, y);
+                return isPoint(node.sw, minX, minY + h1, w1, h2, x, y);
             }
             else
             {
-                return getPoint(node.sw, x, y);
+                return isPoint(node.se, minX + w1, minY + h1, w2, h2, x, y);
             }
         }
 
+        // return leaf value
         return node.colour;
     }
 
+    public void addPoint(int x, int y)
+    {
+        setPoint(x, y, true);
+    }
+
+    public void removePoint(int x, int y)
+    {
+        setPoint(x, y, false);
+    }
+
+    // set the point state for a given coordinate pair
     public void setPoint(int x, int y, boolean b)
     {
-        if(x >= width || y >= height) throw new RuntimeException("");
+        if (x < 0 || y < 0 || x >= width || y >= height) throw new RuntimeException();
 
-        QTNode node = root;
+        setPoint(root, x, y, b, 0, 0, width, height);
+    }
 
-        // find the leaf quadrant that encodes the data for the specified coordinate
-        while(node.isDivided())
+    private void setPoint(QTNode node,int x, int y, boolean b, int minX, int minY, int width, int height)
+    {
+        // recursively select sub-quadrants until the leaf node encoding the coordinate pair is found
+        if(node.isDivided())
         {
-            if(x < node.minX + node.width / 2 && y < node.minY + node.height / 2)
+            // dimensions of sub-quadrants
+            final int w2 = width / 2;
+            final int w1 = width - w2;
+            final int h2 = height / 2;
+            final int h1 = height - h2;
+
+            if (x < minX + w1 && y < minY + h1)
             {
-                node = node.nw;
+                setPoint(node.nw, x, y, b, minX, minY, w1, h1);
             }
-            else if(x >= node.minX + node.width / 2 && y < node.minY + node.height / 2)
+            else if (x >= minX + w1 && y < minY + h1)
             {
-                node = node.ne;
+                setPoint(node.ne, x, y, b, minX + w1, minY, w2, h1);
             }
-            else if(x >= node.minX + node.width / 2 && y >= node.minY + node.height / 2)
+            else if (x < minX + w1 && y >= minY + h1)
             {
-                node = node.se;
+                setPoint(node.sw, x, y, b, minX, minY + h1, w1, h2);
             }
             else
             {
-                node = node.sw;
+                setPoint(node.se, x, y, b, minX + w1, minY + h1, w2, h2);
             }
         }
-
-        // if quadrant already encodes the appropriate value return
-        if(node.colour == b) return;
-
-        // modify the number of points
-        points += b ? 1 : -1;
-
-        if(node.width == 1 && node.height == 1)
+        else if (node.colour != b)
         {
-            // recolour the quadrant
-            node.colour = b;
+            // modify the number of pixels
+            points += b ? 1 : -1;
 
-            // ask parent to check whether all children are now uniform
-            node = node.parent;
-
-            while (node != null && node.nw.colour == node.ne.colour && node.ne.colour == node.se.colour && node.se.colour == node.sw.colour)
-            {
-                node.colour = node.nw.colour;
-                node.nw = node.ne = node.se = node.sw = null;
-                nodes -= 4;
-                node = node.parent;
-            }
-        }
-        else
-        {
             // create a quadrant sized empty array
-            boolean[] array = new boolean[node.width * node.height];
+            boolean[] array = new boolean[width * height];
 
             // set the arrays data to match the quadrants original colour
             if (node.colour) Arrays.fill(array, Boolean.TRUE);
 
             // modify the specified coordinate
-            array[(x - node.minX) + (y - node.minY) * node.width] = b;
+            array[(x - minX) + (y - minY) * width] = b;
 
             // subdivide the quadrant
-            node.subDivide(array);
+            node.subDivide(array, minX, minY, width, height);
         }
     }
 
-    public Data extractData()
+    // optimise the QuadTree by merging sub-quadrants encoding a uniform value
+    public void optimise()
     {
-        boolean[] data = new boolean[width * height];
+        optimise(root);
+    }
 
-        root.extractData(data, width, height);
+    private void optimise(QTNode node)
+    {
+        if(node.isDivided())
+        {
+            // attempt to optimise sub-quadrants first
+            optimise(node.nw);
+            optimise(node.ne);
+            optimise(node.sw);
+            optimise(node.se);
 
-        return new Data(data, width, height);
+            // if the sub-quadrants are equivalent leaves, disposes of them
+            if(
+               node.nw.isLeaf() && node.ne.isLeaf() && node.sw.isLeaf() && node.se.isLeaf() &&
+               node.nw.colour == node.ne.colour && node.ne.colour == node.sw.colour && node.sw.colour == node.se.colour
+              )
+            {
+                node.colour = node.nw.colour;
+                node.nw = node.ne = node.sw = node.se = null;
+                nodes -= 4;
+            }
+        }
+    }
+
+    // export the QuadTress points into an array of pixels
+    public boolean[] extractPixels()
+    {
+        boolean[] pixels = new boolean[width * height];
+
+        extractPixels(root, pixels, width, height, 0, 0, width, height);
+
+        return pixels;
+    }
+
+    private void extractPixels(QTNode node, boolean[] pixels, int qtWidth, int qtHeight, int minX, int minY, int width, int height)
+    {
+        // if this quadrant encodes no data, extract data from the sub-quadrants
+        if(node.isDivided())
+        {
+            // dimensions of sub-quadrants
+            final int w2 = width / 2;
+            final int w1 = width - w2;
+            final int h2 = height / 2;
+            final int h1 = height - h2;
+
+            extractPixels(node.nw, pixels, qtWidth, qtHeight, minX     , minY     , w1, h1);
+            extractPixels(node.ne, pixels, qtWidth, qtHeight, minX + w1, minY     , w2, h1);
+            extractPixels(node.sw, pixels, qtWidth, qtHeight, minX     , minY + h1, w1, h2);
+            extractPixels(node.se, pixels, qtWidth, qtHeight, minX + w1, minY + h1, w2, h2);
+        }
+        else
+        {
+            // populate the pixel array with the value of the leaf across the index range spanned by the quadrant
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    pixels[minX + minY * qtWidth + x + y * qtWidth] = node.colour;
+                }
+            }
+        }
     }
 
     public int getWidth() {
@@ -158,32 +238,52 @@ public class QuadTree
         return points;
     }
 
-    public int getNodes()
+    public int getNodeCount()
     {
         return nodes;
     }
 
-    public QTNode getRoot() {
-        return root;
+    @Override
+    public boolean equals(Object o)
+    {
+        if (this == o) return true;
+
+        if (o == null || getClass() != o.getClass()) return false;
+
+        QuadTree qt = (QuadTree) o;
+
+        return width == qt.width &&
+               height == qt.height &&
+               points == qt.points &&
+               nodes == qt.nodes &&
+               root.equals(qt.root);
     }
 
-    // this function is very experimental currently
-    public ArrayList<Point> getPointsNear(int x, int y, int r)
+    public void draw(Graphics g, int sf)
     {
-        ArrayList<Point> points = new ArrayList<Point>();
-
-        QTNode node = root;
-
-        return points;
+        draw(g, root, sf, 0, 0, width, height);
     }
 
-    // this function is very experimental currently
-    public ArrayList<Point> edgeCoordinates()
+    private void draw(Graphics g, QTNode node, int sf, int minX, int minY, int width, int height)
     {
-        ArrayList<Point> points = new ArrayList<Point>();
+        if(node.isDivided())
+        {
+            final int w2 = width / 2;
+            final int w1 = width - w2;
+            final int h2 = height / 2;
+            final int h1 = height - h2;
 
-        QTNode node = root;
-
-        return points;
+            draw(g, node.nw, sf, minX     , minY     , w1, h1);
+            draw(g, node.ne, sf, minX + w1, minY     , w2, h1);
+            draw(g, node.sw, sf, minX     , minY + h1, w1, h2);
+            draw(g, node.se, sf, minX + w1, minY + h1, w2, h2);
+        }
+        else
+        {
+            g.setColor(node.colour ? Color.BLACK : Color.WHITE);
+            g.fillRect(sf * minX, sf * minY, sf * width, sf * height);
+            g.setColor(Color.RED);
+            g.drawRect(sf * minX, sf * minY, sf * width, sf * height);
+        }
     }
 }
