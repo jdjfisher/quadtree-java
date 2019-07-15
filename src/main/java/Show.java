@@ -33,33 +33,13 @@ public class Show
 
         public DrawPane(QuadTree quadTree)
         {
-            this.qt = quadTree;
+            this.qt = new QuadTree(quadTree);
         }
 
         @Override
         protected void paintComponent(Graphics g)
         {
-            drawNode(g, qt.getRoot());
-        }
-
-        public void drawNode(Graphics g, QTNode node)
-        {
-            if(node.isDivided())
-            {
-                drawNode(g, node.ne);
-                drawNode(g, node.nw);
-                drawNode(g, node.se);
-                drawNode(g, node.sw);
-            }
-            else
-            {
-                final int cellSize = Math.max(1, SIZE / (Math.max(qt.getWidth(), qt.getHeight()) + 2));
-
-                g.setColor(node.colour ? Color.BLACK : Color.WHITE);
-                g.fillRect(node.minX * cellSize, node.minY * cellSize, node.width * cellSize, node.height * cellSize);
-                g.setColor(Color.RED);
-                g.drawRect(node.minX * cellSize, node.minY * cellSize, node.width * cellSize, node.height * cellSize);
-            }
+            qt.draw(g, Math.max(1, SIZE / (Math.max(qt.getWidth(), qt.getHeight()) + 2)));
         }
     }
 }

@@ -1,5 +1,4 @@
 import javax.imageio.ImageIO;
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -14,12 +13,59 @@ public class Main
 
     public static void main(String[] args)
     {
-        Show.quadTree(loadQuadTree("test.png"));
+
+//        QuadTree qt = loadQuadTree("test.png");
+//
+//        Show.quadTree(qt);
+//
+//        qt.setPoint(23, 23, true);
+//
+//        Show.quadTree(qt);
+//
+//        qt.optimise();
+//
+//        Show.quadTree(qt);
+
+
+
+//        Data data = loadData("bigBlobs.png");
+//
+//        System.out.println("loaded");
+//
+//        QuadTree qt = new QuadTree(data.width, data.height);
+//
+//        long a = System.currentTimeMillis();
+//
+//        int k = 1000;
+//        for (int i = 0; i < data.width; i+= k)
+//        {
+//            for (int j = 0; j < data.height; j+= k)
+//            {
+//                for (int x = i; x < Math.min(i + k, data.width); x++)
+//                {
+//                    for (int y = j; y < Math.min(j + k, data.width); y++)
+//                    {
+//                        if (data.pixels[x + y * data.width]) qt.addPoint(x, y);
+//                    }
+//                }
+//
+//                qt.optimise();
+//            }
+//        }
+//
+//        qt.optimise();
+//
+//        long b = System.currentTimeMillis();
+//
+//        System.out.println("set: " + (b-a)/1000f);
+//
+//        exportQuadTree(qt, "jeff.png");
     }
 
     public static QuadTree loadQuadTree(String name)
     {
-        return new QuadTree(loadData(name));
+        Data data = loadData(name);
+        return new QuadTree(data.pixels, data.width, data.height);
     }
 
     public static Data loadData(String name)
@@ -28,7 +74,7 @@ public class Main
 
         try {
 
-            BufferedImage image = ImageIO.read(Main.class.getResource(name));
+            BufferedImage image = ImageIO.read(new File("./src/main/resources/" + name));
             boolean[] pixels = new boolean[image.getWidth() * image.getHeight()];
 
             for (int x = 0; x < image.getWidth(); x++) {
@@ -52,30 +98,12 @@ public class Main
         try
         {
             BufferedImage bi = new BufferedImage(qt.getWidth(), qt.getHeight(), BufferedImage.TYPE_INT_ARGB);
-            drawNode(bi.getGraphics(), qt.getRoot());
+            qt.draw(bi.getGraphics(), 1);
             ImageIO.write(bi, "png", new File("./src/main/resources/" + name));
         }
         catch (IOException e)
         {
             e.printStackTrace();
-        }
-    }
-
-    private static void drawNode(Graphics g, QTNode node)
-    {
-        if(node.isDivided())
-        {
-            drawNode(g, node.ne);
-            drawNode(g, node.nw);
-            drawNode(g, node.se);
-            drawNode(g, node.sw);
-        }
-        else
-        {
-            g.setColor(node.colour ? Color.BLACK : Color.WHITE);
-            g.fillRect(node.minX, node.minY, node.width, node.height);
-            g.setColor(Color.RED);
-            g.drawRect(node.minX, node.minY, node.width, node.height);
         }
     }
 }

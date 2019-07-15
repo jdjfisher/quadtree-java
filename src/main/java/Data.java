@@ -4,17 +4,17 @@
  */
 public class Data
 {
-    boolean[] points;
+    boolean[] pixels;
     final int width;
     final int height;
 
-    public Data(boolean[] points, int width, int height)
+    public Data(boolean[] pixels, int width, int height)
     {
-        this.points = points;
+        this.pixels = pixels;
         this.width = width;
         this.height = height;
 
-        if(points.length != width * height) throw new RuntimeException("");
+        if(pixels.length != width * height) throw new RuntimeException();
     }
 
     @Override
@@ -28,7 +28,7 @@ public class Data
 
         for (int i = 0; i < width * height; i++)
         {
-            if(points[i] != data.points[i]) return false;
+            if(pixels[i] != data.pixels[i]) return false;
         }
 
         return true;
