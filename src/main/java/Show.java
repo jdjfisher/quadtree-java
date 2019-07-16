@@ -6,7 +6,7 @@ import java.awt.*;
  */
 public class Show
 {
-    private static final int SIZE = 800;
+    private static final int FRAME_SIZE = 800;
 
     private Show()
     {
@@ -14,11 +14,11 @@ public class Show
 
     public static void quadTree(QuadTree qt)
     {
-        final int cellSize = Math.max(1, SIZE / (Math.max(qt.getWidth(), qt.getHeight()) + 2));
+        final int cellSize = Math.max(1, FRAME_SIZE / (Math.max(qt.getWidth(), qt.getHeight()) + 2));
 
-        final DrawPane drawPane = new DrawPane(qt);
+        final DrawPane drawPane = new DrawPane(qt, cellSize);
         final JFrame frame = new JFrame();
-        frame.setSize(cellSize * qt.getWidth(), cellSize * qt.getHeight() + 30);
+        frame.setSize(Math.min(cellSize * qt.getWidth(), FRAME_SIZE), Math.min(cellSize * qt.getHeight(), FRAME_SIZE) + 30);
         frame.setLocationRelativeTo(null);
         frame.setResizable(false);
         frame.setContentPane(drawPane);
@@ -30,16 +30,18 @@ public class Show
     public static class DrawPane extends JPanel
     {
         private final QuadTree qt;
+        private final int cellSize;
 
-        public DrawPane(QuadTree quadTree)
+        public DrawPane(QuadTree quadTree, int cellSize)
         {
-            this.qt = new QuadTree(quadTree);
+            this.qt = quadTree;
+            this.cellSize = cellSize;
         }
 
         @Override
         protected void paintComponent(Graphics g)
         {
-            qt.draw(g, Math.max(1, SIZE / (Math.max(qt.getWidth(), qt.getHeight()) + 2)));
+            qt.draw(g, cellSize);
         }
     }
 }

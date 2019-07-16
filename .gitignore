@@ -4,3 +4,5 @@
 target/
 
 QuadTrees\.iml
+
+src/main/resources/quadTrees/
