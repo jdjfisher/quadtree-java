@@ -7,8 +7,10 @@ public class QTNode
     protected QTNode nw, ne, sw, se;   // pointers to potential sub-quadrants
 
     // primary constructor
-    public QTNode(boolean[] data, int minX, int minY, int width, int height)
+    public QTNode(QuadTree qt, boolean[] data, int minX, int minY, int width, int height)
     {
+        qt.nodes++;
+
         // an arbitrary data point from the quadrant
         boolean x = data[0];
 
@@ -17,7 +19,7 @@ public class QTNode
             // if the data to be stored in this quadrant is not uniform, colour this node internal and sub divide
             if (d != x)
             {
-                subDivide(data, minX, minY, width, height);
+                subDivide(qt, data, minX, minY, width, height);
                 return;
             }
         }
@@ -25,13 +27,17 @@ public class QTNode
         // the data in the quadrant is uniform, assign an appropriate colour to encode the value
         colour = x;
 
-        QuadTree.NODES++;
+        // add the quadrants points to the total count
+        if (colour)
+        {
+            qt.points += width * height;
+        }
     }
 
     // copy constructor
     public QTNode(QTNode qtNode)
     {
-        if(qtNode.isDivided())
+        if (qtNode.isDivided())
         {
             nw = new QTNode(qtNode.nw);
             ne = new QTNode(qtNode.ne);
@@ -45,7 +51,7 @@ public class QTNode
     }
 
     // split the quadrant in to 4 sub-quadrants
-    public void subDivide(boolean[] data, int minX, int minY, int width, int height)
+    public void subDivide(QuadTree qt, boolean[] data, int minX, int minY, int width, int height)
     {
         // dimensions of sub-quadrants
         final int w2 = width / 2;
@@ -66,7 +72,7 @@ public class QTNode
         }
 
         // create nw node
-        nw = new QTNode(nwData, minX, minY, w1, h1);
+        nw = new QTNode(qt, nwData, minX, minY, w1, h1);
         se = sw = ne = nw;
 
         if (w2 != 0)
@@ -81,7 +87,7 @@ public class QTNode
                 }
             }
 
-            ne = new QTNode(neData, minX + w1, minY, w2, h1);
+            ne = new QTNode(qt, neData, minX + w1, minY, w2, h1);
         }
 
         if (h2 != 0)
@@ -96,7 +102,7 @@ public class QTNode
                 }
             }
 
-            sw = new QTNode(swData, minX, minY + h1, w1, h2);
+            sw = new QTNode(qt, swData, minX, minY + h1, w1, h2);
         }
 
         if (w2 != 0 && h2 != 0)
@@ -111,7 +117,7 @@ public class QTNode
                 }
             }
 
-            se = new QTNode(seData, minX + w1, minY + h1, w2, h2);
+            se = new QTNode(qt, seData, minX + w1, minY + h1, w2, h2);
         }
     }
 
@@ -131,7 +137,6 @@ public class QTNode
     public boolean equals(Object o)
     {
         if (this == o) return true;
-
         if (o == null || getClass() != o.getClass()) return false;
 
         QTNode node = (QTNode) o;
@@ -144,16 +149,5 @@ public class QTNode
                ne.equals(node.ne) &&
                sw.equals(node.sw) &&
                se.equals(node.se);
-    }
-
-    public static void function(int totalWidth, int totalHeight, int minX, int minY, int width, int height)
-    {
-        for (int x = minX; x < Math.min(minX + width, totalWidth); x++)
-        {
-            for (int y = minY; y < Math.min(minY + height, totalHeight); y++)
-            {
-                int i = x + y * totalWidth;
-            }
-        }
     }
 }
