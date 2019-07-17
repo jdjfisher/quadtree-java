@@ -17,126 +17,13 @@ public class Main
 
     public static void main(String[] args)
     {
-//        t1();
-//        t2();
-//        t3();
-    }
-
-    public static void t1()
-    {
-        PixelData data = loadPixelData("bigBlobs.png");
-        System.out.println("loaded");
-        QuadTree qt = new QuadTree(data.width, data.height);
-
-        final int k = 2048;
-        long a = System.currentTimeMillis();
-        int opts = 0;
-
-        for (int i = 0; i < data.height; i+= k)
-        {
-            for (int j = 0; j < data.width; j+= k)
-            {
-                for (int y = i; y < i + k && y < data.height; y++)
-                {
-                    for (int x = j; x < j + k && x < data.width; x++)
-                    {
-                        if (data.pixels[x + y * data.width]) qt.addPoint(x, y);
-                    }
-                }
-
-                qt.optimise();
-                opts++;
-            }
-        }
-
-        qt.optimise();
-
-        long b = System.currentTimeMillis();
-
-        System.out.println("time (secs): " + (b - a) / 1000f);
-        System.out.println("opts: " + opts);
-    }
-
-    public static void t2()
-    {
-        final int size = 5000;
-        final int r = 2000;
-        QuadTree qt = new QuadTree(size, size);
-
-        long a = System.currentTimeMillis();
-
-        for (int y = -r; y < r; y++)
-        {
-            for (int x = -r; x < r; x++)
-            {
-                qt.addPoint(size / 2 + x, size / 2 + y);
-            }
-        }
-
-        long b = System.currentTimeMillis();
-
-        System.out.println("time (secs): " + (b - a) / 1000f);
-
-        qt.optimise();
-
-        exportQuadTree(qt, "delete.png");
-    }
-
-    public static void t3()
-    {
-        long a = System.currentTimeMillis();
-
-        QuadTree qt = loadQuadTree2("bigBlobs.png");
-
-        long b = System.currentTimeMillis();
-
-        System.out.println("time (secs): " + (b - a) / 1000f);
-        System.out.println("nodes: " + qt.getNodeCount());
-        System.out.println("points: " + qt.getPoints());
-
-        exportQuadTree(qt, "delete.png");
+         QuadTree qt = loadQuadTree("blob.png");
     }
 
     public static QuadTree loadQuadTree(String name)
     {
         PixelData data = loadPixelData(name);
         return new QuadTree(data.pixels, data.width, data.height);
-    }
-
-    public static QuadTree loadQuadTree2(String name)
-    {
-        try
-        {
-            BufferedImage bi = ImageIO.read(new File("./src/main/resources/images/" + name));
-            QuadTree qt = new QuadTree(bi.getWidth(), bi.getHeight());
-
-            final int k = 2048;
-
-            for (int i = 0; i < bi.getHeight(); i+= k)
-            {
-                for (int j = 0; j < bi.getWidth(); j+= k)
-                {
-                    for (int y = i; y < i + k && y < bi.getHeight(); y++)
-                    {
-                        for (int x = j; x < i + j && x < bi.getWidth(); x++)
-                        {
-                            qt.setPoint(x, y, bi.getRGB(x, y) != 0xFFFFFFFF);
-                        }
-                    }
-
-                    qt.optimise();
-                }
-            }
-
-            qt.optimise();
-
-            return qt;
-        }
-        catch (Exception e)
-        {
-            e.printStackTrace();
-            return null;
-        }
     }
 
     public static PixelData loadPixelData(String name)

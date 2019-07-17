@@ -8,6 +8,8 @@ import java.util.Stack;
  */
 public class QuadTree
 {
+    private static final int CHUNK_SIZE = 2048;
+
     private int size;
     private int width;
     private int height;
@@ -15,31 +17,44 @@ public class QuadTree
     protected int nodes;
     private QTNode root;
 
-    // primary constructor
-    public QuadTree(boolean[] pixels, int width, int height)
+    // empty constructor
+    public QuadTree(int width, int height)
     {
-        if (pixels.length != width * height) throw new RuntimeException();
-
         this.width = width;
         this.height = height;
-        this.points = 0;
-        this.nodes = 0;
+        points = 0;
+        nodes = 1;
 
-        final int k = Math.max(width, height);
         size = 1;
-        while (size < k) size <<= 1;
+        while (size < Math.max(width, height)) size <<= 1;
 
-        boolean[] paddedPixels = new boolean[size * size];
+        root = new QTNode();
+    }
 
-        for (int y = 0; y < height; y++)
+    // pixel constructor
+    public QuadTree(boolean[] pixels, int width, int height)
+    {
+        this(width, height);
+
+        if (pixels.length != width * height) throw new RuntimeException();
+
+        for (int i = 0; i < height; i+= CHUNK_SIZE)
         {
-            for (int x = 0; x < width; x++)
+            for (int j = 0; j < width; j+= CHUNK_SIZE)
             {
-                paddedPixels[x + y * size] = pixels[x + y * width];
+                for (int y = i; y < i + CHUNK_SIZE && y < height; y++)
+                {
+                    for (int x = j; x < j + CHUNK_SIZE && x < width; x++)
+                    {
+                        if (pixels[x + y * width]) addPoint(x, y);
+                    }
+                }
+
+                optimise();
             }
         }
 
-        root = new QTNode(this, paddedPixels, size, 0, 0);
+        optimise();
     }
 
     // copy constructor
@@ -52,12 +67,6 @@ public class QuadTree
         this.nodes = qt.nodes;
 
         root = new QTNode(qt.root);
-    }
-
-    // empty constructor
-    public QuadTree(int width, int height)
-    {
-        this(new boolean[width * height], width, height);
     }
 
     // determine whether there is a point stored at the specified coordinates
@@ -117,9 +126,21 @@ public class QuadTree
 
     private void setPoint(QTNode node, int x, int y, boolean b, int size, int minX, int minY)
     {
-        // recursively select sub-quadrants until the leaf node encoding the coordinate pair is found
-        if (node.isDivided())
+        if (size == 1)
         {
+            node.colour = b;
+            points += b ? 1 : -1;
+        }
+        else
+        {
+            if (node.isLeaf())
+            {
+                if (node.colour == b) return;
+
+                node.subDivide();
+                nodes += 4;
+            }
+
             final int halfSize = size / 2;
             final int midX = minX + halfSize;
             final int midY = minY + halfSize;
@@ -127,40 +148,15 @@ public class QuadTree
             if (x < midX && y < midY)
             {
                 setPoint(node.nw, x, y, b, halfSize, minX, minY);
-            }
-            else if (x >= midX && y < midY)
+            } else if (x >= midX && y < midY)
             {
                 setPoint(node.ne, x, y, b, halfSize, midX, minY);
-            }
-            else if (x < midX && y >= midY)
+            } else if (x < midX && y >= midY)
             {
                 setPoint(node.sw, x, y, b, halfSize, minX, midY);
-            }
-            else
+            } else
             {
                 setPoint(node.se, x, y, b, halfSize, midX, midY);
-            }
-        }
-        else if (node.colour != b)
-        {
-            if (size == 1)
-            {
-                node.colour = b;
-                points += b ? 1 : -1;
-            }
-            else
-            {
-                // create a quadrant sized empty array
-                boolean[] array = new boolean[size * size];
-
-                // set the arrays data to match the quadrants original colour
-                if (node.colour) Arrays.fill(array, Boolean.TRUE);
-
-                // modify the specified coordinate
-                array[(x - minX) + (y - minY) * size] = b;
-
-                // subdivide the quadrant
-                node.subDivide(this, array, size, minX, minY);
             }
         }
     }
@@ -197,26 +193,26 @@ public class QuadTree
     }
 
     // export the QuadTress points into an array of pixels
-    public boolean[] extractPixels()
+    public boolean[] getPixels()
     {
         boolean[] pixels = new boolean[width * height];
 
-        extractPixels(root, pixels, width, size, 0, 0);
+        getPixels(root, pixels, width, size, 0, 0);
 
         return pixels;
     }
 
-    private void extractPixels(QTNode node, boolean[] pixels, int qtWidth, int size, int minX, int minY)
+    private void getPixels(QTNode node, boolean[] pixels, int qtWidth, int size, int minX, int minY)
     {
         // if this quadrant encodes no data, extract data from the sub-quadrants
         if (node.isDivided())
         {
             final int halfSize = size / 2;
 
-            extractPixels(node.nw, pixels, qtWidth, halfSize, minX           , minY           );
-            extractPixels(node.ne, pixels, qtWidth, halfSize, minX + halfSize, minY           );
-            extractPixels(node.sw, pixels, qtWidth, halfSize, minX           , minY + halfSize);
-            extractPixels(node.se, pixels, qtWidth, halfSize, minX + halfSize, minY + halfSize);
+            getPixels(node.nw, pixels, qtWidth, halfSize, minX           , minY           );
+            getPixels(node.ne, pixels, qtWidth, halfSize, minX + halfSize, minY           );
+            getPixels(node.sw, pixels, qtWidth, halfSize, minX           , minY + halfSize);
+            getPixels(node.se, pixels, qtWidth, halfSize, minX + halfSize, minY + halfSize);
         }
         else
         {
@@ -233,7 +229,7 @@ public class QuadTree
 
 //    public void merge(QuadTree qt)
 //    {
-//        if(qt == this) return;
+//        if (qt == this) return;
 //
 //        QuadTree qtL = size > qt.size ? this : qt;
 //        QuadTree qtS = size > qt.size ? qt : this;
@@ -255,13 +251,13 @@ public class QuadTree
 
 //    private QTNode mergeNodes(QTNode nodeA, int sizeA, QTNode nodeB, int sizeB)
 //    {
-//        if((nodeA.isLeaf() && nodeA.colour) || (nodeB.isLeaf() && !nodeB.colour)) return nodeA;
+//        if ((nodeA.isLeaf() && nodeA.colour) || (nodeB.isLeaf() && !nodeB.colour)) return nodeA;
 //
-//        if(sizeA > sizeB && nodeA.isDivided()) return mergeNodes(nodeA.nw, sizeA/2, nodeB, sizeB);
+//        if (sizeA > sizeB && nodeA.isDivided()) return mergeNodes(nodeA.nw, sizeA/2, nodeB, sizeB);
 //
-//        if(sizeA == sizeB && nodeB.isLeaf() && nodeB.colour) return nodeB;
+//        if (sizeA == sizeB && nodeB.isLeaf() && nodeB.colour) return nodeB;
 //
-//        if(sizeA == sizeB && nodeA.isDivided() && nodeB.isDivided())
+//        if (sizeA == sizeB && nodeA.isDivided() && nodeB.isDivided())
 //        {
 //            final int halfSize = sizeA / 2;
 //
@@ -281,25 +277,44 @@ public class QuadTree
 //        return nodeA;
 //    }
 
-    private void countNodes()
+    protected void recountNodes()
     {
         nodes = 1;
+        recountNodes(root);
+    }
 
-        Stack<QTNode> stack = new Stack<QTNode>();
-        stack.push(root);
-
-        while(!stack.empty())
+    private void recountNodes(QTNode node)
+    {
+        if (node.isDivided())
         {
-            QTNode node = stack.pop();
+            nodes += 4;
+            recountNodes(node.nw);
+            recountNodes(node.ne);
+            recountNodes(node.sw);
+            recountNodes(node.se);
+        }
+    }
 
-            if(node.isDivided())
-            {
-                stack.push(node.nw);
-                stack.push(node.ne);
-                stack.push(node.se);
-                stack.push(node.sw);
-                nodes += 4;
-            }
+    protected void recountPoints()
+    {
+        points = 0;
+        recountPoints(root, size);
+    }
+
+    private void recountPoints(QTNode node, int size)
+    {
+        if (node.isDivided())
+        {
+            final int halfSize = size / 2;
+
+            recountPoints(node.nw, halfSize);
+            recountPoints(node.ne, halfSize);
+            recountPoints(node.sw, halfSize);
+            recountPoints(node.se, halfSize);
+        }
+        else if (node.colour)
+        {
+            points += size * size;
         }
     }
 
