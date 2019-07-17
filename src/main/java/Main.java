@@ -28,7 +28,7 @@ public class Main
         System.out.println("loaded");
         QuadTree qt = new QuadTree(data.width, data.height);
 
-        final int k = 1000;
+        final int k = 2048;
         long a = System.currentTimeMillis();
         int opts = 0;
 
@@ -86,7 +86,7 @@ public class Main
     {
         long a = System.currentTimeMillis();
 
-        QuadTree qt = loadQuadTree("bigBlobs.png");
+        QuadTree qt = loadQuadTree2("bigBlobs.png");
 
         long b = System.currentTimeMillis();
 
@@ -99,12 +99,18 @@ public class Main
 
     public static QuadTree loadQuadTree(String name)
     {
+        PixelData data = loadPixelData(name);
+        return new QuadTree(data.pixels, data.width, data.height);
+    }
+
+    public static QuadTree loadQuadTree2(String name)
+    {
         try
         {
             BufferedImage bi = ImageIO.read(new File("./src/main/resources/images/" + name));
             QuadTree qt = new QuadTree(bi.getWidth(), bi.getHeight());
 
-            final int k = 1000;
+            final int k = 2048;
 
             for (int i = 0; i < bi.getHeight(); i+= k)
             {
@@ -161,7 +167,7 @@ public class Main
     {
         try
         {
-            BufferedImage bi = ImageIO.read(new File("./src/main/resources/quadTrees/" + name));
+            BufferedImage bi = ImageIO.read(new File("./src/main/resources/images/" + name));
             ArrayList<Point> points = new ArrayList<Point>();
 
             for (int y = 0; y < bi.getHeight(); y++)
@@ -183,11 +189,16 @@ public class Main
 
     public static void exportQuadTree(QuadTree qt, String name)
     {
+        exportQuadTree(qt, name, false);
+    }
+
+    public static void exportQuadTree(QuadTree qt, String name, boolean p)
+    {
         try
         {
-            BufferedImage bi = new BufferedImage(qt.getWidth(), qt.getHeight(), BufferedImage.TYPE_INT_ARGB);
+            BufferedImage bi = new BufferedImage(p ? qt.getSize() : qt.getWidth(), p ? qt.getSize() : qt.getHeight(), BufferedImage.TYPE_INT_ARGB);
             qt.draw(bi.getGraphics(), 1);
-            ImageIO.write(bi, "png", new File("./src/main/resources/" + name));
+            ImageIO.write(bi, "png", new File("./src/main/resources/quadTrees/" + name));
         }
         catch (IOException e)
         {

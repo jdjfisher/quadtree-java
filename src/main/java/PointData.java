@@ -29,4 +29,13 @@ public class PointData
                height == data.height &&
                points.equals(data.points);
     }
+
+    @Override
+    public int hashCode()
+    {
+        int result = points != null ? points.hashCode() : 0;
+        result = 31 * result + width;
+        result = 31 * result + height;
+        return result;
+    }
 }

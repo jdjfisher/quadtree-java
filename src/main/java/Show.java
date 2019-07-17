@@ -7,27 +7,28 @@ import java.awt.*;
 public class Show
 {
     private static final int FRAME_SIZE = 800;
+    private JFrame frame;
 
-    private Show()
-    {
-    }
-
-    public static void quadTree(QuadTree qt)
+    public Show(QuadTree qt)
     {
         final int cellSize = Math.max(1, FRAME_SIZE / (Math.max(qt.getWidth(), qt.getHeight()) + 2));
 
-        final DrawPane drawPane = new DrawPane(qt, cellSize);
-        final JFrame frame = new JFrame();
+        frame = new JFrame();
         frame.setSize(Math.min(cellSize * qt.getWidth(), FRAME_SIZE), Math.min(cellSize * qt.getHeight(), FRAME_SIZE) + 30);
         frame.setLocationRelativeTo(null);
         frame.setResizable(false);
-        frame.setContentPane(drawPane);
+        frame.setContentPane(new DrawPane(qt, cellSize));
         frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         frame.setBackground(new Color(58, 58, 58));
         frame.setVisible(true);
     }
 
-    public static class DrawPane extends JPanel
+    public void update()
+    {
+        frame.repaint();
+    }
+
+    private static class DrawPane extends JPanel
     {
         private final QuadTree qt;
         private final int cellSize;
