@@ -1,28 +1,58 @@
 import java.awt.*;
-import java.util.Arrays;
+import java.util.Stack;
 
 /**
  * Created by JDJFisher on 9/07/2019.
  */
 public class QuadTree
 {
-    private final int width;
-    private final int height;
-    protected int points;
-    protected int nodes;
+    private static final int CHUNK_SIZE = 2048;
+
+    private int size;
+    private int width;
+    private int height;
+    private int points;
+    private int nodes;
     private QTNode root;
 
-    // primary constructor
-    public QuadTree(boolean[] data, int width, int height)
+    // empty constructor
+    public QuadTree(int width, int height)
     {
-        if (data.length != width * height) throw new RuntimeException();
-
         this.width = width;
         this.height = height;
-        this.points = 0;
-        this.nodes = 0;
+        points = 0;
+        nodes = 1;
 
-        root = new QTNode(this, data, 0, 0, width, height);
+        size = 1;
+        while (size < Math.max(width, height)) size <<= 1;
+
+        root = new QTNode();
+    }
+
+    // pixel constructor
+    public QuadTree(boolean[] pixels, int width, int height)
+    {
+        this(width, height);
+
+        if (pixels.length != width * height) throw new RuntimeException();
+
+        for (int i = 0; i < height; i+= CHUNK_SIZE)
+        {
+            for (int j = 0; j < width; j+= CHUNK_SIZE)
+            {
+                for (int y = i; y < i + CHUNK_SIZE && y < height; y++)
+                {
+                    for (int x = j; x < j + CHUNK_SIZE && x < width; x++)
+                    {
+                        if (pixels[x + y * width]) addPoint(x, y);
+                    }
+                }
+
+                optimise();
+            }
+        }
+
+        optimise();
     }
 
     // copy constructor
@@ -30,16 +60,11 @@ public class QuadTree
     {
         this.width = qt.width;
         this.height = qt.height;
+        this.size = qt.size;
         this.points = qt.points;
         this.nodes = qt.nodes;
 
         root = new QTNode(qt.root);
-    }
-
-    // empty constructor
-    public QuadTree(int width, int height)
-    {
-        this(new boolean[width * height], width, height);
     }
 
     // determine whether there is a point stored at the specified coordinates
@@ -47,35 +72,31 @@ public class QuadTree
     {
         if (x < 0 || y < 0 || x >= width || y >= height) throw new RuntimeException();
 
-        return isPoint(root, 0, 0, width, height, x, y);
+        return isPoint(root, x, y, size, 0, 0);
     }
 
-    private boolean isPoint(QTNode node, int minX, int minY, int width, int height, int x, int y)
+    private boolean isPoint(QTNode node, int x, int y, int size, int minX, int minY)
     {
         // recursively select sub-quadrants until the leaf node encoding the coordinate pair is found
         if (node.isDivided())
         {
-            // dimensions of sub-quadrants
-            final int w2 = width / 2;
-            final int w1 = width - w2;
-            final int h2 = height / 2;
-            final int h1 = height - h2;
+            final int halfSize = size / 2;
 
-            if (x < minX + w1 && y < minY + h1)
+            if (x < minX + halfSize && y < minY + halfSize)
             {
-                return isPoint(node.nw, minX, minY, w1, h1, x, y);
+                return isPoint(node.nw, x, y, halfSize, minX, minY);
             }
-            else if (x >= minX + w1 && y < minY + h1)
+            else if (x >= minX + halfSize && y < minY + halfSize)
             {
-                return isPoint(node.ne, minX + w1, minY, w2, h1, x, y);
+                return isPoint(node.ne, x, y, halfSize, minX + halfSize, minY);
             }
-            else if (x < minX + w1 && y >= minY + h1)
+            else if (x < minX + halfSize && y >= minY + halfSize)
             {
-                return isPoint(node.sw, minX, minY + h1, w1, h2, x, y);
+                return isPoint(node.sw, x, y, halfSize, minX, minY + halfSize);
             }
             else
             {
-                return isPoint(node.se, minX + w1, minY + h1, w2, h2, x, y);
+                return isPoint(node.se, x, y, halfSize, minX + halfSize, minY + halfSize);
             }
         }
 
@@ -98,57 +119,45 @@ public class QuadTree
     {
         if (x < 0 || y < 0 || x >= width || y >= height) throw new RuntimeException();
 
-        setPoint(root, x, y, b, 0, 0, width, height);
+        setPoint(root, x, y, b, size, 0, 0);
     }
 
-    private void setPoint(QTNode node,int x, int y, boolean b, int minX, int minY, int width, int height)
+    private void setPoint(QTNode node, int x, int y, boolean b, int size, int minX, int minY)
     {
-        // recursively select sub-quadrants until the leaf node encoding the coordinate pair is found
-        if (node.isDivided())
+        if (size == 1)
         {
-            // dimensions of sub-quadrants
-            final int w2 = width / 2;
-            final int w1 = width - w2;
-            final int h2 = height / 2;
-            final int h1 = height - h2;
-
-            if (x < minX + w1 && y < minY + h1)
-            {
-                setPoint(node.nw, x, y, b, minX, minY, w1, h1);
-            }
-            else if (x >= minX + w1 && y < minY + h1)
-            {
-                setPoint(node.ne, x, y, b, minX + w1, minY, w2, h1);
-            }
-            else if (x < minX + w1 && y >= minY + h1)
-            {
-                setPoint(node.sw, x, y, b, minX, minY + h1, w1, h2);
-            }
-            else
-            {
-                setPoint(node.se, x, y, b, minX + w1, minY + h1, w2, h2);
-            }
+            node.colour = b;
+            points += b ? 1 : -1;
         }
-        else if (node.colour != b)
+        else
         {
-            if (width == 1 && height == 1)
+            if (node.isLeaf())
             {
-                node.colour = b;
-                points += b ? 1 : -1;
+                if (node.colour == b) return;
+
+                node.subDivide();
+                nodes += 4;
+            }
+
+            final int halfSize = size / 2;
+            final int midX = minX + halfSize;
+            final int midY = minY + halfSize;
+
+            if (x < midX && y < midY)
+            {
+                setPoint(node.nw, x, y, b, halfSize, minX, minY);
+            }
+            else if (x >= midX && y < midY)
+            {
+                setPoint(node.ne, x, y, b, halfSize, midX, minY);
+            }
+            else if (x < midX && y >= midY)
+            {
+                setPoint(node.sw, x, y, b, halfSize, minX, midY);
             }
             else
             {
-                // create a quadrant sized empty array
-                boolean[] array = new boolean[width * height];
-
-                // set the arrays data to match the quadrants original colour
-                if (node.colour) Arrays.fill(array, Boolean.TRUE);
-
-                // modify the specified coordinate
-                array[(x - minX) + (y - minY) * width] = b;
-
-                // subdivide the quadrant
-                node.subDivide(this, array, minX, minY, width, height);
+                setPoint(node.se, x, y, b, halfSize, midX, midY);
             }
         }
     }
@@ -171,58 +180,158 @@ public class QuadTree
 
             // if the sub-quadrants are equivalent leaves, disposes of them
             if (
-               node.nw.isLeaf() && node.ne.isLeaf() && node.sw.isLeaf() && node.se.isLeaf() &&
-               node.nw.colour == node.ne.colour && node.ne.colour == node.sw.colour && node.sw.colour == node.se.colour
-              )
+                node.nw.isLeaf() && node.ne.isLeaf() && node.sw.isLeaf() && node.se.isLeaf() &&
+                node.nw.colour == node.ne.colour && node.ne.colour == node.sw.colour && node.sw.colour == node.se.colour
+               )
             {
                 node.colour = node.nw.colour;
 
                 // destroy the redundant sub-quadrants
-                if (node.ne != node.nw) nodes--;
-                if (node.sw != node.nw) nodes--;
-                if (node.se != node.nw) nodes--;
-                nodes--;
                 node.nw = node.ne = node.sw = node.se = null;
+                nodes -= 4;
             }
         }
     }
 
     // export the QuadTress points into an array of pixels
-    public boolean[] extractPixels()
+    public boolean[] getPixels()
     {
         boolean[] pixels = new boolean[width * height];
 
-        extractPixels(root, pixels, width, 0, 0, width, height);
+        getPixels(root, pixels, width, height, size, 0, 0);
 
         return pixels;
     }
 
-    private void extractPixels(QTNode node, boolean[] pixels, int qtWidth, int minX, int minY, int width, int height)
+    private void getPixels(QTNode node, boolean[] pixels, int qtWidth, int qtHeight, int size, int minX, int minY)
     {
         // if this quadrant encodes no data, extract data from the sub-quadrants
         if (node.isDivided())
         {
-            // dimensions of sub-quadrants
-            final int w2 = width / 2;
-            final int w1 = width - w2;
-            final int h2 = height / 2;
-            final int h1 = height - h2;
+            final int halfSize = size / 2;
 
-            extractPixels(node.nw, pixels, qtWidth, minX     , minY     , w1, h1);
-            extractPixels(node.ne, pixels, qtWidth, minX + w1, minY     , w2, h1);
-            extractPixels(node.sw, pixels, qtWidth, minX     , minY + h1, w1, h2);
-            extractPixels(node.se, pixels, qtWidth, minX + w1, minY + h1, w2, h2);
+            getPixels(node.nw, pixels, qtWidth, qtHeight, halfSize, minX           , minY           );
+            getPixels(node.ne, pixels, qtWidth, qtHeight, halfSize, minX + halfSize, minY           );
+            getPixels(node.sw, pixels, qtWidth, qtHeight, halfSize, minX           , minY + halfSize);
+            getPixels(node.se, pixels, qtWidth, qtHeight, halfSize, minX + halfSize, minY + halfSize);
+        }
+        // if the leaf is coloured, colour the pixel array across the index range spanned by the quadrant
+        else if (node.colour)
+        {
+            for (int y = minY; y < minY + size && y < qtHeight; y++)
+            {
+                for (int x = minX; x < minX + size && x < qtWidth; x++)
+                {
+                    pixels[x + y * qtWidth] = true;
+                }
+            }
+        }
+    }
+
+    public void merge(QuadTree qt)
+    {
+        QuadTree merged = merge(qt, this);
+
+        width = merged.width;
+        height = merged.height;
+        size = merged.size;
+        points = merged.points;
+        nodes = merged.nodes;
+        root = merged.root;
+    }
+
+    public static QuadTree merge(QuadTree l, QuadTree s)
+    {
+        if (s.size > l.size) return merge(s, l);
+
+        if (l == s) return l;
+
+        QuadTree result = new QuadTree(l);
+        result.width = Math.max(l.width, s.width);
+        result.height = Math.max(l.height, s.height);
+
+        if (result.size == s.size)
+        {
+            result.root = mergeNodes(result.root, s.root);
         }
         else
         {
-            // populate the pixel array with the value of the leaf across the index range spanned by the quadrant
-            for (int y = 0; y < height; y++)
+            QTNode prevNode = result.root;
+            QTNode currNode = prevNode;
+            int size = result.size;
+
+            while (size > s.size)
             {
-                for (int x = 0; x < width; x++)
+                if (currNode.isLeaf())
                 {
-                    pixels[minX + minY * qtWidth + x + y * qtWidth] = node.colour;
+                    if (currNode.colour) break;
+
+                    currNode.subDivide();
                 }
+
+                prevNode = currNode;
+                currNode = currNode.nw;
+                size /= 2;
             }
+
+            prevNode.nw = mergeNodes(currNode, s.root);
+        }
+
+        return result;
+    }
+
+    private static QTNode mergeNodes(QTNode a, QTNode b)
+    {
+        if (a.isLeaf()) return new QTNode(a.colour ? a : b);
+        if (b.isLeaf()) return new QTNode(b.colour ? b : a);
+
+        QTNode merged = new QTNode();
+        merged.nw = mergeNodes(a.nw, b.nw);
+        merged.ne = mergeNodes(a.ne, b.ne);
+        merged.sw = mergeNodes(a.sw, b.sw);
+        merged.se = mergeNodes(a.se, b.se);
+
+        return merged;
+    }
+
+    protected void recountNodes()
+    {
+        nodes = 1;
+        recountNodes(root);
+    }
+
+    private void recountNodes(QTNode node)
+    {
+        if (node.isDivided())
+        {
+            nodes += 4;
+            recountNodes(node.nw);
+            recountNodes(node.ne);
+            recountNodes(node.sw);
+            recountNodes(node.se);
+        }
+    }
+
+    protected void recountPoints()
+    {
+        points = 0;
+        recountPoints(root, size);
+    }
+
+    private void recountPoints(QTNode node, int size)
+    {
+        if (node.isDivided())
+        {
+            final int halfSize = size / 2;
+
+            recountPoints(node.nw, halfSize);
+            recountPoints(node.ne, halfSize);
+            recountPoints(node.sw, halfSize);
+            recountPoints(node.se, halfSize);
+        }
+        else if (node.colour)
+        {
+            points += size * size;
         }
     }
 
@@ -232,6 +341,11 @@ public class QuadTree
 
     public int getHeight() {
         return height;
+    }
+
+    public int getSize()
+    {
+        return size;
     }
 
     public int getPoints()
@@ -259,31 +373,40 @@ public class QuadTree
                root.equals(qt.root);
     }
 
-    public void draw(Graphics g, int sf)
+    @Override
+    public int hashCode()
     {
-        draw(g, root, sf, 0, 0, width, height);
+        int result = size;
+        result = 31 * result + width;
+        result = 31 * result + height;
+        result = 31 * result + points;
+        result = 31 * result + nodes;
+        result = 31 * result + (root != null ? root.hashCode() : 0);
+        return result;
     }
 
-    private void draw(Graphics g, QTNode node, int sf, int minX, int minY, int width, int height)
+    public void draw(Graphics g, int sf)
+    {
+        draw(g, root, sf, size, 0, 0);
+    }
+
+    private void draw(Graphics g, QTNode node, int sf, int size, int minX, int minY)
     {
         if (node.isDivided())
         {
-            final int w2 = width / 2;
-            final int w1 = width - w2;
-            final int h2 = height / 2;
-            final int h1 = height - h2;
+            final int halfSize = size / 2;
 
-            draw(g, node.nw, sf, minX     , minY     , w1, h1);
-            draw(g, node.ne, sf, minX + w1, minY     , w2, h1);
-            draw(g, node.sw, sf, minX     , minY + h1, w1, h2);
-            draw(g, node.se, sf, minX + w1, minY + h1, w2, h2);
+            draw(g, node.nw, sf, halfSize, minX           , minY           );
+            draw(g, node.ne, sf, halfSize, minX + halfSize, minY           );
+            draw(g, node.sw, sf, halfSize, minX           , minY + halfSize);
+            draw(g, node.se, sf, halfSize, minX + halfSize, minY + halfSize);
         }
         else
         {
             g.setColor(node.colour ? Color.BLACK : Color.WHITE);
-            g.fillRect(sf * minX, sf * minY, sf * width, sf * height);
+            g.fillRect(sf * minX, sf * minY, sf * size, sf * size);
             g.setColor(Color.RED);
-            g.drawRect(sf * minX, sf * minY, sf * width, sf * height);
+            g.drawRect(sf * minX, sf * minY, sf * size, sf * size);
         }
     }
 }

@@ -1,3 +1,5 @@
+import java.util.Arrays;
+
 /**
  * Created by JDJFisher on 9/07/2019.
  */
@@ -32,5 +34,14 @@ public class PixelData
         }
 
         return true;
+    }
+
+    @Override
+    public int hashCode()
+    {
+        int result = Arrays.hashCode(pixels);
+        result = 31 * result + width;
+        result = 31 * result + height;
+        return result;
     }
 }
