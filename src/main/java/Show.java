@@ -8,13 +8,15 @@ public class Show
 {
     private static final int FRAME_SIZE = 800;
     private JFrame frame;
+    private QuadTree qt;
+    private int cellSize;
 
     public Show(QuadTree qt)
     {
-        final int cellSize = Math.max(1, FRAME_SIZE / (Math.max(qt.getWidth(), qt.getHeight()) + 2));
+        this.qt = qt;
 
         frame = new JFrame();
-        frame.setSize(Math.min(cellSize * qt.getWidth(), FRAME_SIZE), Math.min(cellSize * qt.getHeight(), FRAME_SIZE) + 30);
+        updateFrameSize();
         frame.setLocationRelativeTo(null);
         frame.setResizable(false);
         frame.setContentPane(new DrawPane(qt, cellSize));
@@ -25,7 +27,14 @@ public class Show
 
     public void update()
     {
+        updateFrameSize();
         frame.repaint();
+    }
+
+    private void updateFrameSize()
+    {
+        cellSize = Math.max(1, FRAME_SIZE / (Math.max(qt.getWidth(), qt.getHeight())));
+        frame.setSize(Math.min(cellSize * qt.getWidth(), FRAME_SIZE), Math.min(cellSize * qt.getHeight(), FRAME_SIZE) + 30);
     }
 
     private static class DrawPane extends JPanel

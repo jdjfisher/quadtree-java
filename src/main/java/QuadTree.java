@@ -1,6 +1,4 @@
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Stack;
 
 /**
@@ -13,8 +11,8 @@ public class QuadTree
     private int size;
     private int width;
     private int height;
-    protected int points;
-    protected int nodes;
+    private int points;
+    private int nodes;
     private QTNode root;
 
     // empty constructor
@@ -148,13 +146,16 @@ public class QuadTree
             if (x < midX && y < midY)
             {
                 setPoint(node.nw, x, y, b, halfSize, minX, minY);
-            } else if (x >= midX && y < midY)
+            }
+            else if (x >= midX && y < midY)
             {
                 setPoint(node.ne, x, y, b, halfSize, midX, minY);
-            } else if (x < midX && y >= midY)
+            }
+            else if (x < midX && y >= midY)
             {
                 setPoint(node.sw, x, y, b, halfSize, minX, midY);
-            } else
+            }
+            else
             {
                 setPoint(node.se, x, y, b, halfSize, midX, midY);
             }
@@ -197,85 +198,101 @@ public class QuadTree
     {
         boolean[] pixels = new boolean[width * height];
 
-        getPixels(root, pixels, width, size, 0, 0);
+        getPixels(root, pixels, width, height, size, 0, 0);
 
         return pixels;
     }
 
-    private void getPixels(QTNode node, boolean[] pixels, int qtWidth, int size, int minX, int minY)
+    private void getPixels(QTNode node, boolean[] pixels, int qtWidth, int qtHeight, int size, int minX, int minY)
     {
         // if this quadrant encodes no data, extract data from the sub-quadrants
         if (node.isDivided())
         {
             final int halfSize = size / 2;
 
-            getPixels(node.nw, pixels, qtWidth, halfSize, minX           , minY           );
-            getPixels(node.ne, pixels, qtWidth, halfSize, minX + halfSize, minY           );
-            getPixels(node.sw, pixels, qtWidth, halfSize, minX           , minY + halfSize);
-            getPixels(node.se, pixels, qtWidth, halfSize, minX + halfSize, minY + halfSize);
+            getPixels(node.nw, pixels, qtWidth, qtHeight, halfSize, minX           , minY           );
+            getPixels(node.ne, pixels, qtWidth, qtHeight, halfSize, minX + halfSize, minY           );
+            getPixels(node.sw, pixels, qtWidth, qtHeight, halfSize, minX           , minY + halfSize);
+            getPixels(node.se, pixels, qtWidth, qtHeight, halfSize, minX + halfSize, minY + halfSize);
         }
-        else
+        // if the leaf is coloured, colour the pixel array across the index range spanned by the quadrant
+        else if (node.colour)
         {
-            // populate the pixel array with the value of the leaf across the index range spanned by the quadrant
-            for (int y = 0; y < size; y++)
+            for (int y = minY; y < minY + size && y < qtHeight; y++)
             {
-                for (int x = 0; x < size; x++)
+                for (int x = minX; x < minX + size && x < qtWidth; x++)
                 {
-                    pixels[minX + minY * qtWidth + x + y * qtWidth] = node.colour;
+                    pixels[x + y * qtWidth] = true;
                 }
             }
         }
     }
 
-//    public void merge(QuadTree qt)
-//    {
-//        if (qt == this) return;
-//
-//        QuadTree qtL = size > qt.size ? this : qt;
-//        QuadTree qtS = size > qt.size ? qt : this;
-//
-//        QTNode nodeL = qtL.root;
-//        QTNode nodeS = qtS.root;
-//
-//        int sizeL = qtL.size;
-//        int sizeS = qtS.size;
-//
-//        root = mergeNodes(nodeL, sizeL, nodeS, sizeS);
-//
-//        countNodes();
-//
-//        size = Math.max(size, qt.size);
-//        width = Math.max(width, qt.width);
-//        height = Math.max(height, qt.height);
-//    }
+    public void merge(QuadTree qt)
+    {
+        QuadTree merged = merge(qt, this);
 
-//    private QTNode mergeNodes(QTNode nodeA, int sizeA, QTNode nodeB, int sizeB)
-//    {
-//        if ((nodeA.isLeaf() && nodeA.colour) || (nodeB.isLeaf() && !nodeB.colour)) return nodeA;
-//
-//        if (sizeA > sizeB && nodeA.isDivided()) return mergeNodes(nodeA.nw, sizeA/2, nodeB, sizeB);
-//
-//        if (sizeA == sizeB && nodeB.isLeaf() && nodeB.colour) return nodeB;
-//
-//        if (sizeA == sizeB && nodeA.isDivided() && nodeB.isDivided())
-//        {
-//            final int halfSize = sizeA / 2;
-//
-//            nodeA.nw = mergeNodes(nodeA.nw, halfSize, nodeB.nw, halfSize);
-//            nodeA.ne = mergeNodes(nodeA.ne, halfSize, nodeB.ne, halfSize);
-//            nodeA.sw = mergeNodes(nodeA.sw, halfSize, nodeB.sw, halfSize);
-//            nodeA.se = mergeNodes(nodeA.se, halfSize, nodeB.se, halfSize);
-//        }
-//        else
-//        {
-//            boolean[] data = new boolean[sizeA * sizeA];
-//            extractPixels(nodeB, data, sizeA, sizeB, 0, 0);
-//
-//            nodeA.subDivide(this, data, sizeA, 0, 0);
-//        }
-//
-//        return nodeA;
-//    }
+        width = merged.width;
+        height = merged.height;
+        size = merged.size;
+        points = merged.points;
+        nodes = merged.nodes;
+        root = merged.root;
+    }
+
+    public static QuadTree merge(QuadTree l, QuadTree s)
+    {
+        if (s.size > l.size) return merge(s, l);
+
+        if (l == s) return l;
+
+        QuadTree result = new QuadTree(l);
+        result.width = Math.max(l.width, s.width);
+        result.height = Math.max(l.height, s.height);
+
+        if (result.size == s.size)
+        {
+            result.root = mergeNodes(result.root, s.root);
+        }
+        else
+        {
+            QTNode prevNode = result.root;
+            QTNode currNode = prevNode;
+            int size = result.size;
+
+            while (size > s.size)
+            {
+                if (currNode.isLeaf())
+                {
+                    if (currNode.colour) break;
+
+                    currNode.subDivide();
+                }
+
+                prevNode = currNode;
+                currNode = currNode.nw;
+                size /= 2;
+            }
+
+            prevNode.nw = mergeNodes(currNode, s.root);
+        }
+
+        return result;
+    }
+
+    private static QTNode mergeNodes(QTNode a, QTNode b)
+    {
+        if (a.isLeaf()) return new QTNode(a.colour ? a : b);
+        if (b.isLeaf()) return new QTNode(b.colour ? b : a);
+
+        QTNode merged = new QTNode();
+        merged.nw = mergeNodes(a.nw, b.nw);
+        merged.ne = mergeNodes(a.ne, b.ne);
+        merged.sw = mergeNodes(a.sw, b.sw);
+        merged.se = mergeNodes(a.se, b.se);
+
+        return merged;
+    }
 
     protected void recountNodes()
     {
