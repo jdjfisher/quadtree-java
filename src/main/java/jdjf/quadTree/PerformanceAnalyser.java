@@ -1,4 +1,4 @@
-//import org.apache.spark.util.SizeEstimator;
+package jdjf.quadTree;//import org.apache.spark.util.SizeEstimator;
 
 import java.util.Iterator;
 import java.util.TreeSet;
@@ -15,7 +15,7 @@ public class PerformanceAnalyser {
         System.out.println("Loading image");
         PixelData data = Main.loadPixelData(name);
 
-        System.out.println("Starting QuadTree compression");
+        System.out.println("Starting jdjf.quadTree.QuadTree compression");
         long startTimeNode = System.currentTimeMillis();
         QuadTree quadTree = new QuadTree(data.pixels, data.width, data.height);
         long endTimeNode = System.currentTimeMillis();
@@ -29,13 +29,13 @@ public class PerformanceAnalyser {
         }
         long endTimePoint = System.currentTimeMillis();
 
-//        long estimatedSizeQTNode = SizeEstimator.estimate(new QTNode());
+//        long estimatedSizeQTNode = SizeEstimator.estimate(new jdjf.quadTree.QTNode());
 //        long estimatedSizePointInteger = SizeEstimator.estimate(new Point<Integer>(1,1,1));
-        long estimatedSizeQTNode = 32; // A node has 1 boolean and 4 QTNode references
+        long estimatedSizeQTNode = 32; // A node has 1 boolean and 4 jdjf.quadTree.QTNode references
         long estimatedSizePointInteger = 40; // A point has 3 integer coordinates
 
         System.out.println();
-        System.out.println("QTNode size = "+estimatedSizeQTNode+" B");
+        System.out.println("jdjf.quadTree.QTNode size = "+estimatedSizeQTNode+" B");
         System.out.println("Number of nodes = "+quadTree.getNodeCount());
         System.out.println("Estimated node size = "+((double) quadTree.getNodeCount()*estimatedSizeQTNode)/1048576d+" MB");
         System.out.println("Total time nodes = "+((double) (endTimeNode-startTimeNode))/(1E3d)+" s");

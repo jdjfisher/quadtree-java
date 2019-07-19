@@ -1,3 +1,5 @@
+package jdjf.quadTree;
+
 import java.awt.*;
 import java.util.ArrayList;
 

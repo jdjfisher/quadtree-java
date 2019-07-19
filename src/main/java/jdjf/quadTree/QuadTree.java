@@ -1,3 +1,5 @@
+package jdjf.quadTree;
+
 import java.awt.*;
 import java.util.ArrayList;
 
@@ -181,7 +183,7 @@ public class QuadTree
 
     }
 
-    // optimise the QuadTree by merging sub-quadrants encoding a uniform value
+    // optimise the jdjf.quadTree.QuadTree by merging sub-quadrants encoding a uniform value
     public void optimise()
     {
         optimise(root);

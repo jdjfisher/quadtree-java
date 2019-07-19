@@ -1,3 +1,5 @@
+package jdjf.quadTree;
+
 import javax.swing.*;
 import java.awt.*;
 
