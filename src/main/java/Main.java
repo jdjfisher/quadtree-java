@@ -59,7 +59,7 @@ public class Main
     {
         try
         {
-            BufferedImage bi = ImageIO.read(new File("./src/main/resources/images/" + name));
+            BufferedImage bi = ImageIO.read(Main.class.getResource("/images/" + name));
             ArrayList<Point> points = new ArrayList<Point>();
 
             for (int y = 0; y < bi.getHeight(); y++)

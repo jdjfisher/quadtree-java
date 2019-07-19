@@ -61,14 +61,14 @@ public class QTNode
 
         QTNode node = (QTNode) o;
 
-        if (nw.isLeaf() && node.isLeaf()) return colour == node.colour;
+        if (isLeaf() && node.isLeaf()) return colour == node.colour;
 
-        return nw.isDivided() &&
-                node.nw.isDivided()  &&
-                nw.equals(node.nw) &&
-                ne.equals(node.ne) &&
-                sw.equals(node.sw) &&
-                se.equals(node.se);
+        return isDivided() &&
+               node.isDivided()  &&
+               nw.equals(node.nw) &&
+               ne.equals(node.ne) &&
+               sw.equals(node.sw) &&
+               se.equals(node.se);
     }
 
     @Override

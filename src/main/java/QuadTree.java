@@ -195,11 +195,8 @@ public class QuadTree
             optimise(node.sw);
             optimise(node.se);
 
-            // if all the sub-quadrants are leaves of the same colour, dispose of them
-            if (
-                node.nw.isLeaf() && node.ne.isLeaf() && node.sw.isLeaf() && node.se.isLeaf() &&
-                node.nw.colour == node.ne.colour && node.ne.colour == node.sw.colour && node.sw.colour == node.se.colour
-               )
+            // if all the sub-quadrants are equivalent, dispose of them
+            if (node.nw.equals(node.ne) && node.ne.equals(node.sw) && node.se.equals(node.sw))
             {
                 node.colour = node.nw.colour;
 
