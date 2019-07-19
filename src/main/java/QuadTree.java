@@ -1,5 +1,5 @@
 import java.awt.*;
-import java.util.Stack;
+import java.util.ArrayList;
 
 /**
  * Created by JDJFisher on 9/07/2019.
@@ -52,6 +52,19 @@ public class QuadTree
                 // optimise chunk before moving on
                 optimise();
             }
+        }
+
+        optimise();
+    }
+
+    // point constructor
+    public QuadTree(ArrayList<Point> points, int width, int height)
+    {
+        this(width, height);
+
+        for (Point p : points)
+        {
+            addPoint(p.x, p.y);
         }
 
         optimise();
@@ -343,6 +356,52 @@ public class QuadTree
         }
     }
 
+    public ArrayList<Point> getEdgePoints()
+    {
+        ArrayList<Point> points = new ArrayList<>();
+
+        getEdgePoints(points, root, size, 0, 0);
+
+        return points;
+    }
+
+    private void getEdgePoints(ArrayList<Point> points, QTNode node, int size, int minX, int minY)
+    {
+        if (node.isDivided())
+        {
+            final int halfSize = size / 2;
+
+            getEdgePoints(points, node.nw, halfSize, minX           , minY           );
+            getEdgePoints(points, node.ne, halfSize, minX + halfSize, minY           );
+            getEdgePoints(points, node.sw, halfSize, minX           , minY + halfSize);
+            getEdgePoints(points, node.se, halfSize, minX + halfSize, minY + halfSize);
+        }
+        else if (node.colour)
+        {
+            for (int x = minX; x < minX + size; x++)
+            {
+                int y = minY;
+
+                if (y - 1 <= 0 || !isPoint(x, y - 1)) points.add(new Point(x, y));
+
+                y = minY + size - 1;
+
+                if (y + 1 >= height || !isPoint(x, y + 1)) points.add(new Point(x, y));
+            }
+
+            for (int y = minY; y < minY + size; y++)
+            {
+                int x = minX;
+
+                if (x - 1 <= 0 || !isPoint(x - 1, y)) points.add(new Point(x, y));
+
+                x = minX + size - 1;
+
+                if (x + 1 >= width || !isPoint(x + 1, y)) points.add(new Point(x, y));
+            }
+        }
+    }
+
     public int getWidth()
     {
         return width;
@@ -400,7 +459,7 @@ public class QuadTree
         draw(g, root, sf, size, 0, 0);
     }
 
-    private void draw(Graphics g, QTNode node, int sf, int size, int minX, int minY)
+    private static void draw(Graphics g, QTNode node, int sf, int size, int minX, int minY)
     {
         if (node.isDivided())
         {
