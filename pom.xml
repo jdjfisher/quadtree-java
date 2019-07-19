@@ -20,4 +20,12 @@
             </properties>
         </contributor>
     </contributors>
+
+    <dependencies>
+        <!--<dependency>-->
+            <!--<groupId>org.apache.spark</groupId>-->
+            <!--<artifactId>spark-core_2.12</artifactId>-->
+            <!--<version>2.4.3</version>-->
+        <!--</dependency>-->
+    </dependencies>
 </project>
