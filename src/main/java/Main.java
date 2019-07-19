@@ -4,20 +4,14 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Random;
 
 /**
  * Created by JDJFisher on 9/07/2019.
  */
 public class Main
 {
-    private static final Random RNG = new Random();
-
-    public static int COUNT = 0;
-
     public static void main(String[] args)
     {
-         QuadTree qt = loadQuadTree("blob.png");
     }
 
     public static QuadTree loadQuadTree(String name)
@@ -30,7 +24,7 @@ public class Main
     {
         try
         {
-            BufferedImage bi = ImageIO.read(new File("./src/main/resources/images/" + name));
+            BufferedImage bi = ImageIO.read(Main.class.getResource("/images/" + name));
             boolean[] pixels = new boolean[bi.getWidth() * bi.getHeight()];
 
             for (int y = 0; y < bi.getHeight(); y++)
@@ -54,7 +48,7 @@ public class Main
     {
         try
         {
-            BufferedImage bi = ImageIO.read(new File("./src/main/resources/images/" + name));
+            BufferedImage bi = ImageIO.read(Main.class.getResource("/images/" + name));
             ArrayList<Point> points = new ArrayList<Point>();
 
             for (int y = 0; y < bi.getHeight(); y++)

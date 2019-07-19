@@ -3,17 +3,17 @@
  */
 public class QTNode
 {
-    protected boolean colour;          // colour of the quadrant
+    protected boolean coloured;        // colour of the quadrant
     protected QTNode nw, ne, sw, se;   // references to potential sub-quadrants
 
     public QTNode()
     {
-        this.colour = false;
+        this.coloured = false;
     }
 
-    public QTNode(boolean colour)
+    public QTNode(boolean coloured)
     {
-        this.colour = colour;
+        this.coloured = coloured;
     }
 
     // copy constructor
@@ -28,17 +28,17 @@ public class QTNode
         }
         else
         {
-            colour = qtNode.colour;
+            coloured = qtNode.coloured;
         }
     }
 
     // split the quadrant in to 4 sub-quadrants
     protected void subDivide()
     {
-        nw = new QTNode(colour);
-        ne = new QTNode(colour);
-        sw = new QTNode(colour);
-        se = new QTNode(colour);
+        nw = new QTNode(coloured);
+        ne = new QTNode(coloured);
+        sw = new QTNode(coloured);
+        se = new QTNode(coloured);
     }
 
     // determine whether the node is divided into quadrants
@@ -61,20 +61,20 @@ public class QTNode
 
         QTNode node = (QTNode) o;
 
-        if (nw.isLeaf() && node.isLeaf()) return colour == node.colour;
+        if (isLeaf() && node.isLeaf()) return coloured == node.coloured;
 
-        return nw.isDivided() &&
-                node.nw.isDivided()  &&
-                nw.equals(node.nw) &&
-                ne.equals(node.ne) &&
-                sw.equals(node.sw) &&
-                se.equals(node.se);
+        return isDivided() &&
+               node.isDivided()  &&
+               nw.equals(node.nw) &&
+               ne.equals(node.ne) &&
+               sw.equals(node.sw) &&
+               se.equals(node.se);
     }
 
     @Override
     public int hashCode()
     {
-        int result = (colour ? 1 : 0);
+        int result = (coloured ? 1 : 0);
         result = 31 * result + (nw != null ? nw.hashCode() : 0);
         result = 31 * result + (ne != null ? ne.hashCode() : 0);
         result = 31 * result + (sw != null ? sw.hashCode() : 0);
