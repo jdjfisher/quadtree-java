@@ -21,7 +21,31 @@
         </contributor>
     </contributors>
 
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
     <dependencies>
+        <!--<dependency>-->
+            <!--<groupId>net.imagej</groupId>-->
+            <!--<artifactId>ij</artifactId>-->
+            <!--<version>1.51h</version>-->
+        <!--</dependency>-->
+
+        <!--<dependency>-->
+            <!--<groupId>com.github.SJCross</groupId>-->
+            <!--<artifactId>Common</artifactId>-->
+            <!--<version>1.4.35</version>-->
+        <!--</dependency>-->
+
         <!--<dependency>-->
             <!--<groupId>org.apache.spark</groupId>-->
             <!--<artifactId>spark-core_2.12</artifactId>-->

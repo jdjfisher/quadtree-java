@@ -51,7 +51,16 @@ public class Show
         @Override
         protected void paintComponent(Graphics g)
         {
-            qt.draw(g, cellSize);
+            if(qt.getSize() > FRAME_SIZE)
+            {
+                g.setFont(new Font("Arial", Font.PLAIN, 40));
+                g.setColor(Color.WHITE);
+                g.drawString("Quad Tree too big to display!", FRAME_SIZE / 2 - 240, FRAME_SIZE / 2 - 50);
+            }
+            else
+            {
+                qt.draw(g, cellSize);
+            }
         }
     }
 }

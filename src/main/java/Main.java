@@ -1,33 +1,23 @@
-import com.sun.javafx.css.Size;
-
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.lang.instrument.Instrumentation;
 import java.util.ArrayList;
-import java.util.Random;
 
 /**
  * Created by JDJFisher on 9/07/2019.
  */
 public class Main
 {
-    private static final Random RNG = new Random();
-
-    public static int COUNT = 0;
-
     public static void main(String[] args)
     {
-         QuadTree qt = loadQuadTree("blob.png");
     }
 
     public static QuadTree loadQuadTree(String name)
     {
         PixelData data = loadPixelData(name);
         return new QuadTree(data.pixels, data.width, data.height);
-
     }
 
     public static PixelData loadPixelData(String name)
@@ -35,7 +25,6 @@ public class Main
         try
         {
             BufferedImage bi = ImageIO.read(Main.class.getResource("/images/" + name));
-//            BufferedImage bi = ImageIO.read(new File("./src/main/resources/images/" + name));
             boolean[] pixels = new boolean[bi.getWidth() * bi.getHeight()];
 
             for (int y = 0; y < bi.getHeight(); y++)
