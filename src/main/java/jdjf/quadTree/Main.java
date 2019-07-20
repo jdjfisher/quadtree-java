@@ -33,7 +33,7 @@ public class Main
             {
                 for (int x = 0; x < bi.getWidth(); x++)
                 {
-                    pixels[x + y * bi.getWidth()] = bi.getRGB(x, y) != 0xFFFFFFFF;
+                    pixels[x + y * bi.getWidth()] = bi.getRGB(x, y) == -0x1000000;
                 }
             }
 
@@ -51,13 +51,13 @@ public class Main
         try
         {
             BufferedImage bi = ImageIO.read(Main.class.getResource("/images/" + name));
-            ArrayList<Point> points = new ArrayList<Point>();
+            ArrayList<Point> points = new ArrayList<>();
 
             for (int y = 0; y < bi.getHeight(); y++)
             {
                 for (int x = 0; x < bi.getWidth(); x++)
                 {
-                    if (bi.getRGB(x, y) != 0xFFFFFFFF) points.add(new Point(x, y));
+                    if (bi.getRGB(x, y) == -0x1000000) points.add(new Point(x, y));
                 }
             }
 
@@ -72,16 +72,70 @@ public class Main
 
     public static void exportQuadTree(QuadTree qt, String name)
     {
-        exportQuadTree(qt, name, false);
+        exportQuadTree(qt, name, false, true);
     }
 
-    public static void exportQuadTree(QuadTree qt, String name, boolean p)
+    public static void exportQuadTree(QuadTree qt, String name, boolean showPadding, boolean showNodes)
     {
         try
         {
-            BufferedImage bi = new BufferedImage(p ? qt.getSize() : qt.getWidth(), p ? qt.getSize() : qt.getHeight(), BufferedImage.TYPE_INT_ARGB);
-            qt.draw(bi.getGraphics(), 1);
-            ImageIO.write(bi, "png", new File("./src/main/resources/quadTrees/" + name));
+            BufferedImage bi = new BufferedImage(
+                    showPadding ? qt.getSize() : qt.getWidth(),
+                    showPadding ? qt.getSize() : qt.getHeight(),
+                    BufferedImage.TYPE_INT_ARGB
+            );
+
+            qt.draw(bi.getGraphics(), 1, showNodes);
+            ImageIO.write(bi, "png", new File("./src/main/resources/output/" + name));
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    public static void exportPixelData(PixelData data, String name)
+    {
+        try
+        {
+            BufferedImage bi = new BufferedImage(data.width, data.height, BufferedImage.TYPE_INT_ARGB);
+
+            Graphics g = bi.getGraphics();
+            g.setColor(Color.WHITE);
+            g.fillRect(0, 0, data.width, data.height);
+            g.setColor(Color.BLACK);
+            for (int y = 0; y < data.height; y++)
+            {
+                for (int x = 0; x < data.width; x++)
+                {
+                    if (data.pixels[x + y * data.width]) g.fillRect(x, y, 1, 1);
+                }
+            }
+
+            ImageIO.write(bi, "png", new File("./src/main/resources/output/" + name));
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    public static void exportPointData(PointData data, String name)
+    {
+        try
+        {
+            BufferedImage bi = new BufferedImage(data.width, data.height, BufferedImage.TYPE_INT_ARGB);
+
+            Graphics g = bi.getGraphics();
+            g.setColor(Color.WHITE);
+            g.fillRect(0, 0, data.width, data.height);
+            g.setColor(Color.BLACK);
+            for (Point p : data.points)
+            {
+                g.fillRect(p.x, p.y, 1, 1);
+            }
+
+            ImageIO.write(bi, "png", new File("./src/main/resources/output/" + name));
         }
         catch (IOException e)
         {

@@ -61,7 +61,7 @@ public class Show
             }
             else
             {
-                qt.draw(g, cellSize);
+                qt.draw(g, cellSize, true);
             }
         }
     }

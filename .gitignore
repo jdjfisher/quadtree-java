@@ -5,4 +5,4 @@ target/
 
 QuadTrees\.iml
 
-src/main/resources/quadTrees/
+src/main/resources/output/
