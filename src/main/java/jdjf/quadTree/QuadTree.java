@@ -2,11 +2,12 @@ package jdjf.quadTree;
 
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Iterator;
 
 /**
  * Created by JDJFisher on 9/07/2019.
  */
-public class QuadTree
+public class QuadTree implements Iterable<Point>
 {
     private static final int CHUNK_SIZE = 2048;
 
@@ -523,7 +524,7 @@ public class QuadTree
     @Override
     public Iterator<Point> iterator()
     {
-        return new QuadTreeIterator(this);
+        return new QuadTreeIterator();
     }
 
     public void draw(Graphics g, int sf, boolean showNodes)
@@ -554,8 +555,51 @@ public class QuadTree
 
             if (nodes)
             {
-            g.setColor(Color.RED);
-            g.drawRect(sf * minX, sf * minY, sf * size, sf * size);
+                g.setColor(Color.RED);
+                g.drawRect(sf * minX, sf * minY, sf * size, sf * size);
+            }
+        }
+    }
+
+    private class QuadTreeIterator implements Iterator<Point>
+    {
+        private int x;
+        private int y;
+
+        public QuadTreeIterator()
+        {
+            x = -1;
+            y = 0;
+
+            findNextPoint();
+        }
+
+        @Override
+        public boolean hasNext()
+        {
+            return y < height;
+        }
+
+        @Override
+        public Point next()
+        {
+            Point point = new Point(x, y);
+            findNextPoint();
+            return point;
+        }
+
+        private void findNextPoint()
+        {
+            while (y < height)
+            {
+                if (++x == width)
+                {
+                    x = 0;
+                    y++;
+                }
+
+                if (isPoint(x, y)) return;
+            }
         }
     }
 }
