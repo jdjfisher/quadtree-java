@@ -1,10 +1,13 @@
+package jdjf.quadTree;
+
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Iterator;
 
 /**
  * Created by JDJFisher on 9/07/2019.
  */
-public class QuadTree
+public class QuadTree implements Iterable<Point>
 {
     private static final int CHUNK_SIZE = 2048;
 
@@ -85,7 +88,7 @@ public class QuadTree
     // determine whether there is a point stored at the specified coordinates
     public boolean isPoint(int x, int y)
     {
-        if (x < 0 || y < 0 || x >= width || y >= height) throw new RuntimeException();
+        if (x < 0 || y < 0 || x >= width || y >= height) return false;
 
         return isPoint(root, x, y, size, 0, 0);
     }
@@ -136,7 +139,7 @@ public class QuadTree
     // set the point state for a given coordinate pair
     public void setPoint(int x, int y, boolean b)
     {
-        if (x < 0 || y < 0 || x >= width || y >= height) throw new RuntimeException();
+        if (x < 0 || y < 0 || x >= width || y >= height) return;
 
         setPoint(root, x, y, b, size, 0, 0);
     }
@@ -412,26 +415,49 @@ public class QuadTree
         }
         else if (node.coloured)
         {
-            for (int x = minX; x < minX + size; x++)
+            final int maxX = minX + size - 1;
+            final int maxY = minY + size - 1;
+
+            // corners
+
+            if (minX - 1 <= 0 || minY - 1 <= 0 || !isPoint(minX - 1, minY) || !isPoint(minX, minY - 1))
             {
-                int y = minY;
-
-                if (y - 1 <= 0 || !isPoint(x, y - 1)) points.add(new Point(x, y));
-
-                y = minY + size - 1;
-
-                if (y + 1 >= height || !isPoint(x, y + 1)) points.add(new Point(x, y));
+                points.add(new Point(minX, minY)); // nw
+                if(size == 1) return;
             }
 
-            for (int y = minY; y < minY + size; y++)
+            if (maxX + 1 >= width || minY - 1 <= 0 || !isPoint(maxX + 1, minY) || !isPoint(maxX, minY - 1))
             {
-                int x = minX;
+                points.add(new Point(maxX, minY)); // ne
+                if(size == 1) return;
+            }
 
-                if (x - 1 <= 0 || !isPoint(x - 1, y)) points.add(new Point(x, y));
+            if (minX - 1 <= 0 || maxY + 1 >= height || !isPoint(minX - 1, maxY) || !isPoint(minX, maxY + 1))
+            {
+                points.add(new Point(minX, maxY)); // sw
+                if(size == 1) return;
+            }
 
-                x = minX + size - 1;
+            if (maxX + 1 >= width || maxY + 1 >= height || !isPoint(maxX + 1, maxY) || !isPoint(maxX, maxY + 1))
+            {
+                points.add(new Point(maxX, maxY)); // se
+                if(size == 1) return;
+            }
 
-                if (x + 1 >= width || !isPoint(x + 1, y)) points.add(new Point(x, y));
+            // sides
+
+            for (int x = minX + 1; x < maxX; x++)
+            {
+                if (minY - 1 <= 0 || !isPoint(x, minY - 1)) points.add(new Point(x, minY));
+
+                if (maxY + 1 >= height || !isPoint(x, maxY + 1)) points.add(new Point(x, maxY));
+            }
+
+            for (int y = minY + 1; y < maxY; y++)
+            {
+                if (minX - 1 <= 0 || !isPoint(minX - 1, y)) points.add(new Point(minX, y));
+
+                if (maxX + 1 >= width || !isPoint(maxX + 1, y)) points.add(new Point(maxX, y));
             }
         }
     }
@@ -495,28 +521,85 @@ public class QuadTree
         return result;
     }
 
-    public void draw(Graphics g, int sf)
+    @Override
+    public Iterator<Point> iterator()
     {
-        draw(g, root, sf, size, 0, 0);
+        return new QuadTreeIterator();
     }
 
-    private static void draw(Graphics g, QTNode node, int sf, int size, int minX, int minY)
+    public void draw(Graphics g, int sf, boolean showNodes)
+    {
+        g.setColor(Color.WHITE);
+        g.fillRect(0, 0, width * sf, height * sf);
+        draw(g, root, sf, showNodes, size, 0, 0);
+    }
+
+    private static void draw(Graphics g, QTNode node, int sf, boolean nodes, int size, int minX, int minY)
     {
         if (node.isDivided())
         {
             final int halfSize = size / 2;
 
-            draw(g, node.nw, sf, halfSize, minX           , minY           );
-            draw(g, node.ne, sf, halfSize, minX + halfSize, minY           );
-            draw(g, node.sw, sf, halfSize, minX           , minY + halfSize);
-            draw(g, node.se, sf, halfSize, minX + halfSize, minY + halfSize);
+            draw(g, node.nw, sf, nodes, halfSize, minX           , minY           );
+            draw(g, node.ne, sf, nodes, halfSize, minX + halfSize, minY           );
+            draw(g, node.sw, sf, nodes, halfSize, minX           , minY + halfSize);
+            draw(g, node.se, sf, nodes, halfSize, minX + halfSize, minY + halfSize);
         }
         else
         {
-            g.setColor(node.coloured ? Color.BLACK : Color.WHITE);
-            g.fillRect(sf * minX, sf * minY, sf * size, sf * size);
-            g.setColor(Color.RED);
-            g.drawRect(sf * minX, sf * minY, sf * size, sf * size);
+            if (node.coloured)
+            {
+                g.setColor(Color.BLACK);
+                g.fillRect(sf * minX, sf * minY, sf * size, sf * size);
+            }
+
+            if (nodes)
+            {
+                g.setColor(Color.RED);
+                g.drawRect(sf * minX, sf * minY, sf * size, sf * size);
+            }
+        }
+    }
+
+    private class QuadTreeIterator implements Iterator<Point>
+    {
+        private int x;
+        private int y;
+
+        public QuadTreeIterator()
+        {
+            x = -1;
+            y = 0;
+
+            findNextPoint();
+        }
+
+        @Override
+        public boolean hasNext()
+        {
+            return y < height;
+        }
+
+        @Override
+        public Point next()
+        {
+            Point point = new Point(x, y);
+            findNextPoint();
+            return point;
+        }
+
+        private void findNextPoint()
+        {
+            while (y < height)
+            {
+                if (++x == width)
+                {
+                    x = 0;
+                    y++;
+                }
+
+                if (isPoint(x, y)) return;
+            }
         }
     }
 }

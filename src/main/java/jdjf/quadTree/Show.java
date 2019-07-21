@@ -1,3 +1,5 @@
+package jdjf.quadTree;
+
 import javax.swing.*;
 import java.awt.*;
 
@@ -59,7 +61,7 @@ public class Show
             }
             else
             {
-                qt.draw(g, cellSize);
+                qt.draw(g, cellSize, true);
             }
         }
     }

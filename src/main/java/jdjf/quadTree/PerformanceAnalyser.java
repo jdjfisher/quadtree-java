@@ -1,5 +1,6 @@
-//import org.apache.spark.util.SizeEstimator;
+package jdjf.quadTree;
 
+//import org.apache.spark.util.SizeEstimator;
 import java.util.Iterator;
 import java.util.TreeSet;
 
