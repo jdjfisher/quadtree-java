@@ -1,18 +1,18 @@
 package jdjf.quadTree;
 
-import java.awt.*;
-import java.util.ArrayList;
+import wbif.sjx.common.Object.Point;
+import java.util.TreeSet;
 
 /**
  * Created by JDJFisher on 16/07/2019.
  */
 public class PointData
 {
-    public ArrayList<Point> points;
+    public TreeSet<Point<Integer>> points;
     public final int width;
     public final int height;
 
-    public PointData(ArrayList<Point> points, int width, int height)
+    public PointData(TreeSet<Point<Integer>> points, int width, int height)
     {
         this.points = points;
         this.width = width;

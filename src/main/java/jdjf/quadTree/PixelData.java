@@ -17,7 +17,7 @@ public class PixelData
         this.width = width;
         this.height = height;
 
-        if (pixels.length != width * height) throw new RuntimeException();
+        if (pixels.length != width * height) throw new IllegalArgumentException("Invalid array size");
     }
 
     @Override

@@ -34,17 +34,11 @@
     </build>
 
     <dependencies>
-        <!--<dependency>-->
-            <!--<groupId>net.imagej</groupId>-->
-            <!--<artifactId>ij</artifactId>-->
-            <!--<version>1.51h</version>-->
-        <!--</dependency>-->
-
-        <!--<dependency>-->
-            <!--<groupId>com.github.SJCross</groupId>-->
-            <!--<artifactId>Common</artifactId>-->
-            <!--<version>1.4.35</version>-->
-        <!--</dependency>-->
+        <dependency>
+            <groupId>com.github.SJCross</groupId>
+            <artifactId>Common</artifactId>
+            <version>1.4.35</version>
+        </dependency>
 
         <!--<dependency>-->
             <!--<groupId>org.apache.spark</groupId>-->
