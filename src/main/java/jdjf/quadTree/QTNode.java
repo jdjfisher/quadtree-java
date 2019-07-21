@@ -5,8 +5,8 @@ package jdjf.quadTree;
  */
 public class QTNode
 {
-    protected boolean coloured;        // colour of the quadrant
-    protected QTNode nw, ne, sw, se;   // references to potential sub-quadrants
+    protected boolean coloured;
+    protected QTNode nw, ne, sw, se;
 
     public QTNode()
     {
@@ -34,7 +34,6 @@ public class QTNode
         }
     }
 
-    // split the quadrant in to 4 sub-quadrants
     protected void subDivide()
     {
         nw = new QTNode(coloured);
@@ -43,13 +42,11 @@ public class QTNode
         se = new QTNode(coloured);
     }
 
-    // determine whether the node is divided into quadrants
     public boolean isDivided()
     {
         return nw != null;
     }
 
-    // determine whether the node is a leaf
     public boolean isLeaf()
     {
         return nw == null;

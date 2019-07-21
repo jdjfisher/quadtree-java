@@ -1,11 +1,13 @@
 package jdjf.quadTree;
 
+import wbif.sjx.common.Object.Point;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.TreeSet;
 
 /**
  * Created by JDJFisher on 9/07/2019.
@@ -51,13 +53,13 @@ public class Main
         try
         {
             BufferedImage bi = ImageIO.read(Main.class.getResource("/images/" + name));
-            ArrayList<Point> points = new ArrayList<>();
+            TreeSet<Point<Integer>> points = new TreeSet<>();
 
             for (int y = 0; y < bi.getHeight(); y++)
             {
                 for (int x = 0; x < bi.getWidth(); x++)
                 {
-                    if (bi.getRGB(x, y) == -0x1000000) points.add(new Point(x, y));
+                    if (bi.getRGB(x, y) == -0x1000000) points.add(new Point<>(x, y, 0));
                 }
             }
 
@@ -132,7 +134,7 @@ public class Main
             g.setColor(Color.BLACK);
             for (Point p : data.points)
             {
-                g.fillRect(p.x, p.y, 1, 1);
+                g.fillRect(p.getX().intValue(), p.getY().intValue(), 1, 1);
             }
 
             ImageIO.write(bi, "png", new File("./src/main/resources/output/" + name));
