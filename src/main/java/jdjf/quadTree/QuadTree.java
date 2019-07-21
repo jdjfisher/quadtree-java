@@ -13,9 +13,9 @@ public class QuadTree implements Iterable<Point<Integer>>
 {
     private static final int CHUNK_SIZE = 2048;
 
-    private int size;
     private int width;
     private int height;
+    private int size;
     private int points;
     private int nodes;
     private QTNode root;
@@ -220,29 +220,31 @@ public class QuadTree implements Iterable<Point<Integer>>
     {
         TreeSet<Point<Integer>> points = new TreeSet<>();
 
-        getPoints(root, points, width, height, size, 0, 0);
+        getPoints(root, points, size, 0, 0);
 
         return points;
     }
 
-    private void getPoints(QTNode node, TreeSet<Point<Integer>> points, int qtWidth, int qtHeight, int size, int minX, int minY)
+    private void getPoints(QTNode node, TreeSet<Point<Integer>> points, int size, int minX, int minY)
     {
         // if this quadrant encodes no data, search the sub-quadrants for data
         if (node.isDivided())
         {
             final int halfSize = size / 2;
+            final int midX = minX + halfSize;
+            final int midY = minY + halfSize;
 
-            getPoints(node.nw, points, qtWidth, qtHeight, halfSize, minX           , minY           );
-            getPoints(node.ne, points, qtWidth, qtHeight, halfSize, minX + halfSize, minY           );
-            getPoints(node.sw, points, qtWidth, qtHeight, halfSize, minX           , minY + halfSize);
-            getPoints(node.se, points, qtWidth, qtHeight, halfSize, minX + halfSize, minY + halfSize);
+            getPoints(node.nw, points, halfSize, minX, minY);
+            getPoints(node.ne, points, halfSize, midX, minY);
+            getPoints(node.sw, points, halfSize, minX, midY);
+            getPoints(node.se, points, halfSize, midX, midY);
         }
         // if the leaf is coloured, add all the points in the quadrant to the list
         else if (node.coloured)
         {
-            for (int y = minY; y < minY + size && y < qtHeight; y++)
+            for (int y = minY; y < minY + size && y < height; y++)
             {
-                for (int x = minX; x < minX + size && x < qtWidth; x++)
+                for (int x = minX; x < minX + size && x < width; x++)
                 {
                     points.add(new Point<>(x, y, 0));
                 }
@@ -255,31 +257,33 @@ public class QuadTree implements Iterable<Point<Integer>>
     {
         boolean[] pixels = new boolean[width * height];
 
-        getPixels(root, pixels, width, height, size, 0, 0);
+        getPixels(root, pixels, size, 0, 0);
 
         return pixels;
     }
 
-    private void getPixels(QTNode node, boolean[] pixels, int qtWidth, int qtHeight, int size, int minX, int minY)
+    private void getPixels(QTNode node, boolean[] pixels, int size, int minX, int minY)
     {
         // if this quadrant encodes no data, search the sub-quadrants for data
         if (node.isDivided())
         {
             final int halfSize = size / 2;
+            final int midX = minX + halfSize;
+            final int midY = minY + halfSize;
 
-            getPixels(node.nw, pixels, qtWidth, qtHeight, halfSize, minX           , minY           );
-            getPixels(node.ne, pixels, qtWidth, qtHeight, halfSize, minX + halfSize, minY           );
-            getPixels(node.sw, pixels, qtWidth, qtHeight, halfSize, minX           , minY + halfSize);
-            getPixels(node.se, pixels, qtWidth, qtHeight, halfSize, minX + halfSize, minY + halfSize);
+            getPixels(node.nw, pixels, halfSize, minX, minY);
+            getPixels(node.ne, pixels, halfSize, midX, minY);
+            getPixels(node.sw, pixels, halfSize, minX, midY);
+            getPixels(node.se, pixels, halfSize, midX, midY);
         }
         // if the leaf is coloured, colour the pixel array across the index range spanned by the quadrant
         else if (node.coloured)
         {
-            for (int y = minY; y < minY + size && y < qtHeight; y++)
+            for (int y = minY; y < minY + size && y < height; y++)
             {
-                for (int x = minX; x < minX + size && x < qtWidth; x++)
+                for (int x = minX; x < minX + size && x < width; x++)
                 {
-                    pixels[x + y * qtWidth] = true;
+                    pixels[x + y * width] = true;
                 }
             }
         }
@@ -289,21 +293,23 @@ public class QuadTree implements Iterable<Point<Integer>>
     {
         TreeSet<Point<Integer>> points = new TreeSet<>();
 
-        getEdgePoints(points, root, size, 0, 0);
+        getEdgePoints(root, points, size, 0, 0);
 
         return points;
     }
 
-    private void getEdgePoints(TreeSet<Point<Integer>> points, QTNode node, int size, int minX, int minY)
+    private void getEdgePoints(QTNode node, TreeSet<Point<Integer>> points, int size, int minX, int minY)
     {
         if (node.isDivided())
         {
             final int halfSize = size / 2;
+            final int midX = minX + halfSize;
+            final int midY = minY + halfSize;
 
-            getEdgePoints(points, node.nw, halfSize, minX           , minY           );
-            getEdgePoints(points, node.ne, halfSize, minX + halfSize, minY           );
-            getEdgePoints(points, node.sw, halfSize, minX           , minY + halfSize);
-            getEdgePoints(points, node.se, halfSize, minX + halfSize, minY + halfSize);
+            getEdgePoints(node.nw, points, halfSize, minX, minY);
+            getEdgePoints(node.ne, points, halfSize, midX, minY);
+            getEdgePoints(node.sw, points, halfSize, minX, midY);
+            getEdgePoints(node.se, points, halfSize, midX, midY);
         }
         else if (node.coloured)
         {
@@ -312,16 +318,28 @@ public class QuadTree implements Iterable<Point<Integer>>
 
             for (int x = minX; x <= maxX; x++)
             {
-                if (minY - 1 <= 0 || !contains(x, minY - 1)) points.add(new Point<>(x, minY, 0));
+                if (minY - 1 <= 0 || !contains(x, minY - 1))
+                {
+                    points.add(new Point<>(x, minY, 0));
+                }
 
-                if (maxY + 1 >= height || !contains(x, maxY + 1)) points.add(new Point<>(x, maxY, 0));
+                if (maxY + 1 >= height || !contains(x, maxY + 1))
+                {
+                    points.add(new Point<>(x, maxY, 0));
+                }
             }
 
             for (int y = minY; y <= maxY; y++)
             {
-                if (minX - 1 <= 0 || !contains(minX - 1, y)) points.add(new Point<>(minX, y, 0));
+                if (minX - 1 <= 0 || !contains(minX - 1, y))
+                {
+                    points.add(new Point<>(minX, y, 0));
+                }
 
-                if (maxX + 1 >= width || !contains(maxX + 1, y)) points.add(new Point<>(maxX, y, 0));
+                if (maxX + 1 >= width || !contains(maxX + 1, y))
+                {
+                    points.add(new Point<>(maxX, y, 0));
+                }
             }
         }
     }
