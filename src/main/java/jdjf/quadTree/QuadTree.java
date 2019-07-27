@@ -1,8 +1,10 @@
 package jdjf.quadTree;
 
+import com.sun.istack.internal.Nullable;
 import wbif.sjx.common.Object.Point;
 
 import java.awt.*;
+import java.util.Stack;
 import java.util.TreeSet;
 import java.util.Iterator;
 
@@ -344,6 +346,70 @@ public class QuadTree implements Iterable<Point<Integer>>
         }
     }
 
+    public void getEdgePoints3D(TreeSet<Point<Integer>> points, @Nullable QuadTree above, @Nullable QuadTree below, int z)
+    {
+        getEdgePoints3D(root, points, above, below, z, size, 0, 0);
+    }
+
+    private void getEdgePoints3D(QTNode node, TreeSet<Point<Integer>> points, QuadTree a, QuadTree b, int z, int size, int minX, int minY)
+    {
+        if (node.isDivided())
+        {
+            final int halfSize = size / 2;
+            final int midX = minX + halfSize;
+            final int midY = minY + halfSize;
+
+            getEdgePoints3D(node.nw, points, a, b, z, halfSize, minX, minY);
+            getEdgePoints3D(node.ne, points, a, b, z, halfSize, midX, minY);
+            getEdgePoints3D(node.sw, points, a, b, z, halfSize, minX, midY);
+            getEdgePoints3D(node.se, points, a, b, z, halfSize, midX, midY);
+        }
+        else if (node.coloured)
+        {
+            final int maxX = minX + size - 1;
+            final int maxY = minY + size - 1;
+
+            if(a == null || b == null)
+            {
+                for (int y = minY; y <= maxY; y++)
+                {
+                    for (int x = minX; x <= maxX; x++)
+                    {
+                        points.add(new Point<>(x, y, z));
+                    }
+                }
+            }
+            else
+            {
+                for (int x = minX; x <= maxX; x++)
+                {
+                    if (minY - 1 <= 0 || !contains(x, minY - 1) || !a.contains(x, maxY) || !b.contains(x, minY))
+                    {
+                        points.add(new Point<>(x, minY, z));
+                    }
+
+                    if (maxY + 1 >= height || !contains(x, maxY + 1) || !a.contains(x, maxY) || !b.contains(x, maxY))
+                    {
+                        points.add(new Point<>(x, maxY, z));
+                    }
+                }
+
+                for (int y = minY; y <= maxY; y++)
+                {
+                    if (minX - 1 <= 0 || !contains(minX - 1, y) || !a.contains(minX, y) || !b.contains(minX, y))
+                    {
+                        points.add(new Point<>(minX, y, z));
+                    }
+
+                    if (maxX + 1 >= width || !contains(maxX + 1, y) || !a.contains(maxX, y) || !b.contains(maxX, y))
+                    {
+                        points.add(new Point<>(maxX, y, z));
+                    }
+                }
+            }
+        }
+    }
+
     // merge points from another Quad Tree into this Quad Tree
     public void merge(QuadTree qt)
     {
@@ -492,6 +558,11 @@ public class QuadTree implements Iterable<Point<Integer>>
         return nodes;
     }
 
+    public QTNode getRoot()
+    {
+        return root;
+    }
+
     @Override
     public boolean equals(Object o)
     {
@@ -501,10 +572,10 @@ public class QuadTree implements Iterable<Point<Integer>>
         QuadTree qt = (QuadTree) o;
 
         return width == qt.width &&
-               height == qt.height &&
-               points == qt.points &&
-               nodes == qt.nodes &&
-               root.equals(qt.root);
+                height == qt.height &&
+                points == qt.points &&
+                nodes == qt.nodes &&
+                root.equals(qt.root);
     }
 
     @Override
@@ -527,42 +598,107 @@ public class QuadTree implements Iterable<Point<Integer>>
 
     private class QuadTreeIterator implements Iterator<Point<Integer>>
     {
-        private int x;
-        private int y;
+        private final Stack<QTNode>  nodeStack;
+        private final Stack<Integer> sizeStack;
+        private final Stack<Integer> minXStack;
+        private final Stack<Integer> minYStack;
+
+        private int x, y;
+        private int minX, minY;
+        private int maxX, maxY;
 
         public QuadTreeIterator()
         {
-            x = -1;
-            y = 0;
+            nodeStack = new Stack<>();
+            sizeStack = new Stack<>();
+            minXStack = new Stack<>();
+            minYStack = new Stack<>();
 
-            findNextPoint();
+            nodeStack.push(root);
+            sizeStack.push(size);
+            minXStack.push(0);
+            minYStack.push(0);
+
+            findNextColouredLeaf();
         }
 
         @Override
         public boolean hasNext()
         {
-            return y < height;
+            return !nodeStack.empty() || y <= maxY;
         }
 
         @Override
         public Point<Integer> next()
         {
-            Point<Integer> point = new Point<>(x, y, 0);
+            Point<Integer> currentPoint = new Point<>(x, y, 0);
+
             findNextPoint();
-            return point;
+
+            return currentPoint;
         }
 
         private void findNextPoint()
         {
-            while (y < height)
-            {
-                if (++x == width)
-                {
-                    x = 0;
-                    y++;
-                }
+            x++;
 
-                if (contains(x, y)) return;
+            if (x > maxX)
+            {
+                x = minX;
+                y++;
+
+                if (y > maxY)
+                {
+                    findNextColouredLeaf();
+                }
+            }
+        }
+
+        private void findNextColouredLeaf()
+        {
+            while (!nodeStack.empty())
+            {
+                final QTNode node = nodeStack.pop();
+                final int size = sizeStack.pop();
+                minX = minXStack.pop();
+                minY = minYStack.pop();
+
+                if (node.isDivided())
+                {
+                    final int halfSize = size / 2;
+                    final int midX = minX + halfSize;
+                    final int midY = minY + halfSize;
+
+                    nodeStack.push(node.nw);
+                    sizeStack.push(halfSize);
+                    minXStack.push(minX);
+                    minYStack.push(minY);
+
+                    nodeStack.push(node.ne);
+                    sizeStack.push(halfSize);
+                    minXStack.push(midX);
+                    minYStack.push(minY);
+
+                    nodeStack.push(node.sw);
+                    sizeStack.push(halfSize);
+                    minXStack.push(minX);
+                    minYStack.push(midY);
+
+                    nodeStack.push(node.se);
+                    sizeStack.push(halfSize);
+                    minXStack.push(midX);
+                    minYStack.push(midY);
+                }
+                else if (node.coloured)
+                {
+                    maxX = minX + size - 1;
+                    maxY = minY + size - 1;
+
+                    x = minX;
+                    y = minY;
+
+                    return;
+                }
             }
         }
     }
