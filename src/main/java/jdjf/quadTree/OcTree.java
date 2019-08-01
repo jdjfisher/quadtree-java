@@ -655,6 +655,8 @@ public class OcTree implements Iterable<Point<Integer>>
             minYStack.push(0);
             minZStack.push(0);
 
+            maxX = maxY = maxZ = Integer.MIN_VALUE;
+
             findNextColouredLeaf();
         }
 

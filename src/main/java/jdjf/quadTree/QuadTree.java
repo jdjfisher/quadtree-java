@@ -619,6 +619,8 @@ public class QuadTree implements Iterable<Point<Integer>>
             minXStack.push(0);
             minYStack.push(0);
 
+            maxX = maxY = Integer.MIN_VALUE;
+
             findNextColouredLeaf();
         }
 
