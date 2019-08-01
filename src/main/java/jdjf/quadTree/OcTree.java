@@ -2,12 +2,14 @@ package jdjf.quadTree;
 
 import wbif.sjx.common.Object.Point;
 
+import java.util.Iterator;
+import java.util.Stack;
 import java.util.TreeSet;
 
 /**
  * Created by JDJFisher on 19/07/2019.
  */
-public class OctTree
+public class OcTree implements Iterable<Point<Integer>>
 {
     private static final int CHUNK_SIZE = 2048;
 
@@ -20,7 +22,7 @@ public class OctTree
     private OTNode root;
 
     // empty constructor
-    public OctTree(int width, int height, int depth)
+    public OcTree(int width, int height, int depth)
     {
         this.width = width;
         this.height = height;
@@ -29,14 +31,14 @@ public class OctTree
         nodes = 1;
         size = 1;
 
-        // set the size to the first power of 2 that is greater than both dimensions
+        // set the size to the first power of 2 that is greater than all dimensions
         while (size < Math.max(Math.max(width, height), depth)) size <<= 1;
 
         root = new OTNode();
     }
 
     // pixel constructor
-    public OctTree(boolean[] pixels, int width, int height, int depth)
+    public OcTree(boolean[] pixels, int width, int height, int depth)
     {
         this(width, height, depth);
 
@@ -69,8 +71,21 @@ public class OctTree
         optimise();
     }
 
+    // point constructor
+    public OcTree(TreeSet<Point<Integer>> points, int width, int height, int depth)
+    {
+        this(width, height, depth);
+
+        for (Point<Integer> p : points)
+        {
+            add(p.getX(), p.getY(), p.getZ());
+        }
+
+        optimise();
+    }
+
     // copy constructor
-    public OctTree(OctTree ot)
+    public OcTree(OcTree ot)
     {
         this.width = ot.width;
         this.height = ot.height;
@@ -87,7 +102,7 @@ public class OctTree
     {
         if (x < 0 || x >= width)  throw new IndexOutOfBoundsException("Coordinate out of bounds! (x: " + x + ")");
         if (y < 0 || y >= height) throw new IndexOutOfBoundsException("Coordinate out of bounds! (y: " + y + ")");
-        if (z < 0 || z >= depth)  throw new IndexOutOfBoundsException("Coordinate out of bounds! (z: " + y + ")");
+        if (z < 0 || z >= depth)  throw new IndexOutOfBoundsException("Coordinate out of bounds! (z: " + z + ")");
 
         return contains(root, x, y, z, size, 0, 0, 0);
     }
@@ -157,7 +172,7 @@ public class OctTree
     {
         if (x < 0 || x >= width)  throw new IndexOutOfBoundsException("Coordinate out of bounds! (x: " + x + ")");
         if (y < 0 || y >= height) throw new IndexOutOfBoundsException("Coordinate out of bounds! (y: " + y + ")");
-        if (z < 0 || z >= depth)  throw new IndexOutOfBoundsException("Coordinate out of bounds! (z: " + y + ")");
+        if (z < 0 || z >= depth)  throw new IndexOutOfBoundsException("Coordinate out of bounds! (z: " + z + ")");
 
         set(root, x, y, z, b, size, 0, 0, 0);
     }
@@ -214,11 +229,11 @@ public class OctTree
         }
         else
         {
-           set(node.use, x, y, z, b, halfSize, midX, midY, midZ);
+            set(node.use, x, y, z, b, halfSize, midX, midY, midZ);
         }
     }
 
-    // optimise the OctTree by merging sub-sectors encoding a uniform value
+    // optimise the OcTree by merging sub-sectors encoding a uniform value
     public void optimise()
     {
         optimise(root);
@@ -240,9 +255,9 @@ public class OctTree
 
             // if all the sub-quadrants are equivalent, dispose of them
             if (
-                node.lnw.equals(node.lne) && node.lne.equals(node.lsw) && node.lsw.equals(node.lse) && node.lse.equals(node.unw) &&
-                node.unw.equals(node.une) && node.une.equals(node.usw) && node.usw.equals(node.use)
-               )
+                    node.lnw.equals(node.lne) && node.lne.equals(node.lsw) && node.lsw.equals(node.lse) && node.lse.equals(node.unw) &&
+                            node.unw.equals(node.une) && node.une.equals(node.usw) && node.usw.equals(node.use)
+                    )
             {
                 node.coloured = node.unw.coloured;
 
@@ -379,33 +394,33 @@ public class OctTree
             for (int x = minX; x <= maxX; x++)
             {
                 if (
-                    minY - 1 <= 0 || !contains(x, minY - 1, minZ) ||
-                    minZ - 1 <= 0 || !contains(x, minY, minZ - 1)
-                   )
+                        minY - 1 <= 0 || !contains(x, minY - 1, minZ) ||
+                                minZ - 1 <= 0 || !contains(x, minY, minZ - 1)
+                        )
                 {
                     points.add(new Point<>(x, minY, minZ));
                 }
 
                 if (
-                    maxY + 1 >= height || !contains(x, maxY + 1, minZ) ||
-                    minZ - 1 <= 0      || !contains(x, maxY, minZ - 1)
-                   )
+                        maxY + 1 >= height || !contains(x, maxY + 1, minZ) ||
+                                minZ - 1 <= 0      || !contains(x, maxY, minZ - 1)
+                        )
                 {
                     points.add(new Point<>(x, maxY, minZ));
                 }
 
                 if (
-                    minY - 1 <= 0     || !contains(x, minY - 1, maxZ) ||
-                    maxZ + 1 >= depth || !contains(x, minY, maxZ + 1)
-                   )
+                        minY - 1 <= 0     || !contains(x, minY - 1, maxZ) ||
+                                maxZ + 1 >= depth || !contains(x, minY, maxZ + 1)
+                        )
                 {
                     points.add(new Point<>(x, minY, maxZ));
                 }
 
                 if (
-                    maxY + 1 >= height || !contains(x, maxY + 1, maxZ) ||
-                    maxZ + 1 >= depth  || !contains(x, maxY, maxZ + 1)
-                   )
+                        maxY + 1 >= height || !contains(x, maxY + 1, maxZ) ||
+                                maxZ + 1 >= depth  || !contains(x, maxY, maxZ + 1)
+                        )
                 {
                     points.add(new Point<>(x, maxY, maxZ));
                 }
@@ -414,33 +429,33 @@ public class OctTree
             for (int y = minY; y <= maxY; y++)
             {
                 if (
-                    minX - 1 <= 0 || !contains(minX - 1, y, minZ) ||
-                    minZ - 1 <= 0 || !contains(minX, y, minZ - 1)
-                   )
+                        minX - 1 <= 0 || !contains(minX - 1, y, minZ) ||
+                                minZ - 1 <= 0 || !contains(minX, y, minZ - 1)
+                        )
                 {
                     points.add(new Point<>(minX, y, minZ));
                 }
 
                 if (
-                    maxX + 1 >= width || !contains(maxX + 1, y, minZ) ||
-                    minZ - 1 <= 0     || !contains(maxX, y, minZ - 1)
-                   )
+                        maxX + 1 >= width || !contains(maxX + 1, y, minZ) ||
+                                minZ - 1 <= 0     || !contains(maxX, y, minZ - 1)
+                        )
                 {
                     points.add(new Point<>(maxX, y, minZ));
                 }
 
                 if (
-                    minX - 1 <= 0     || !contains(minX - 1, y, maxZ) ||
-                    maxZ + 1 >= depth || !contains(minX, y, maxZ + 1)
-                   )
+                        minX - 1 <= 0     || !contains(minX - 1, y, maxZ) ||
+                                maxZ + 1 >= depth || !contains(minX, y, maxZ + 1)
+                        )
                 {
                     points.add(new Point<>(minX, y, maxZ));
                 }
 
                 if (
-                    maxX + 1 >= width || !contains(maxX + 1, y, maxZ) ||
-                    maxZ + 1 >= depth || !contains(maxX, y, maxZ + 1)
-                   )
+                        maxX + 1 >= width || !contains(maxX + 1, y, maxZ) ||
+                                maxZ + 1 >= depth || !contains(maxX, y, maxZ + 1)
+                        )
                 {
                     points.add(new Point<>(maxX, y, maxZ));
                 }
@@ -449,33 +464,33 @@ public class OctTree
             for (int z = minZ; z <= maxZ; z++)
             {
                 if (
-                    minX - 1 <= 0 || !contains(minX - 1, minY, z) ||
-                    minY - 1 <= 0 || !contains(minX, minY - 1, z)
-                   )
+                        minX - 1 <= 0 || !contains(minX - 1, minY, z) ||
+                                minY - 1 <= 0 || !contains(minX, minY - 1, z)
+                        )
                 {
                     points.add(new Point<>(minX, minY, z));
                 }
 
                 if (
-                    maxX + 1 >= width || !contains(maxX + 1, minY, z) ||
-                    minY - 1 <= 0     || !contains(maxX, minY - 1, z)
-                   )
+                        maxX + 1 >= width || !contains(maxX + 1, minY, z) ||
+                                minY - 1 <= 0     || !contains(maxX, minY - 1, z)
+                        )
                 {
                     points.add(new Point<>(maxX, minY, z));
                 }
 
                 if (
-                    minX - 1 <= 0      || !contains(minX - 1, maxY, z) ||
-                    maxY + 1 >= height || !contains(minX, maxY + 1, z)
-                   )
+                        minX - 1 <= 0      || !contains(minX - 1, maxY, z) ||
+                                maxY + 1 >= height || !contains(minX, maxY + 1, z)
+                        )
                 {
                     points.add(new Point<>(minX, maxY, z));
                 }
 
                 if (
-                    maxX + 1 >= width  || !contains(maxX + 1, maxY, z) ||
-                    maxY + 1 >= height || !contains(maxX, maxY + 1, z)
-                   )
+                        maxX + 1 >= width  || !contains(maxX + 1, maxY, z) ||
+                                maxY + 1 >= height || !contains(maxX, maxY + 1, z)
+                        )
                 {
                     points.add(new Point<>(maxX, maxY, z));
                 }
@@ -574,20 +589,25 @@ public class OctTree
         return nodes;
     }
 
+    public OTNode getRoot()
+    {
+        return root;
+    }
+
     @Override
     public boolean equals(Object o)
     {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        OctTree ot = (OctTree) o;
+        OcTree ot = (OcTree) o;
 
         return width == ot.width &&
-               height == ot.height &&
-               depth == ot.depth &&
-               points == ot.points &&
-               nodes == ot.nodes &&
-               root.equals(ot.root);
+                height == ot.height &&
+                depth == ot.depth &&
+                points == ot.points &&
+                nodes == ot.nodes &&
+                root.equals(ot.root);
     }
 
     @Override
@@ -601,5 +621,162 @@ public class OctTree
         result = 31 * result + nodes;
         result = 31 * result + (root != null ? root.hashCode() : 0);
         return result;
+    }
+
+    @Override
+    public Iterator<Point<Integer>> iterator()
+    {
+        return new OcTreeIterator();
+    }
+
+    private class OcTreeIterator implements Iterator<Point<Integer>>
+    {
+        private final Stack<OTNode>  nodeStack;
+        private final Stack<Integer> sizeStack;
+        private final Stack<Integer> minXStack;
+        private final Stack<Integer> minYStack;
+        private final Stack<Integer> minZStack;
+
+        private int x, y, z;
+        private int minX, minY, minZ;
+        private int maxX, maxY, maxZ;
+
+        public OcTreeIterator()
+        {
+            nodeStack = new Stack<>();
+            sizeStack = new Stack<>();
+            minXStack = new Stack<>();
+            minYStack = new Stack<>();
+            minZStack = new Stack<>();
+
+            nodeStack.push(root);
+            sizeStack.push(size);
+            minXStack.push(0);
+            minYStack.push(0);
+            minZStack.push(0);
+
+            maxX = maxY = maxZ = Integer.MIN_VALUE;
+
+            findNextColouredLeaf();
+        }
+
+        @Override
+        public boolean hasNext()
+        {
+            return !nodeStack.empty() || z <= maxZ;
+        }
+
+        @Override
+        public Point<Integer> next()
+        {
+            Point<Integer> currentPoint = new Point<>(x, y, z);
+
+            findNextPoint();
+
+            return currentPoint;
+        }
+
+        private void findNextPoint()
+        {
+            x++;
+
+            if (x > maxX)
+            {
+                x = minX;
+                y++;
+
+                if (y > maxY)
+                {
+                    x = minX;
+                    y = minY;
+                    z++;
+
+                    if (z > maxZ)
+                    {
+                        findNextColouredLeaf();
+                    }
+                }
+            }
+        }
+
+        private void findNextColouredLeaf()
+        {
+            while (!nodeStack.empty())
+            {
+                final OTNode node = nodeStack.pop();
+                final int size = sizeStack.pop();
+                minX = minXStack.pop();
+                minY = minYStack.pop();
+                minZ = minZStack.pop();
+
+                if (node.isDivided())
+                {
+                    final int halfSize = size / 2;
+                    final int midX = minX + halfSize;
+                    final int midY = minY + halfSize;
+                    final int midZ = minZ + halfSize;
+
+                    nodeStack.push(node.lnw);
+                    sizeStack.push(halfSize);
+                    minXStack.push(minX);
+                    minYStack.push(minY);
+                    minZStack.push(minZ);
+
+                    nodeStack.push(node.lne);
+                    sizeStack.push(halfSize);
+                    minXStack.push(midX);
+                    minYStack.push(minY);
+                    minZStack.push(minZ);
+
+                    nodeStack.push(node.lsw);
+                    sizeStack.push(halfSize);
+                    minXStack.push(minX);
+                    minYStack.push(midY);
+                    minZStack.push(minZ);
+
+                    nodeStack.push(node.lse);
+                    sizeStack.push(halfSize);
+                    minXStack.push(midX);
+                    minYStack.push(midY);
+                    minZStack.push(minZ);
+
+                    nodeStack.push(node.unw);
+                    sizeStack.push(halfSize);
+                    minXStack.push(minX);
+                    minYStack.push(minY);
+                    minZStack.push(midZ);
+
+                    nodeStack.push(node.une);
+                    sizeStack.push(halfSize);
+                    minXStack.push(midX);
+                    minYStack.push(minY);
+                    minZStack.push(midZ);
+
+                    nodeStack.push(node.usw);
+                    sizeStack.push(halfSize);
+                    minXStack.push(minX);
+                    minYStack.push(midY);
+                    minZStack.push(midZ);
+
+                    nodeStack.push(node.use);
+                    sizeStack.push(halfSize);
+                    minXStack.push(midX);
+                    minYStack.push(midY);
+                    minZStack.push(midZ);
+                }
+                else if (node.coloured)
+                {
+                    maxX = minX + size - 1;
+                    maxY = minY + size - 1;
+                    maxZ = minZ + size - 1;
+
+                    x = minX;
+                    y = minY;
+                    z = minZ;
+
+                    return;
+                }
+            }
+        }
     }
 }
