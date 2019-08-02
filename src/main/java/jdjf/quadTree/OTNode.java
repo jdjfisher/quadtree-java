@@ -60,6 +60,11 @@ public class OTNode
         return lnw == null;
     }
 
+    public OTNode[] getChildren()
+    {
+        return new OTNode[] {lnw, lne, lsw, lse, unw, une, usw, use};
+    }
+
     @Override
     public boolean equals(Object o)
     {

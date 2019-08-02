@@ -8,7 +8,7 @@ import java.awt.*;
  */
 public class Show
 {
-    private static final int MAX_FRAME_SIZE = 800;
+    private static final int MAX_FRAME_SIZE = 900;
     private JFrame frame;
     private QuadTree qt;
     private int cellSize;

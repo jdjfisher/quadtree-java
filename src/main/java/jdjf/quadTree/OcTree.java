@@ -2,114 +2,64 @@ package jdjf.quadTree;
 
 import wbif.sjx.common.Object.Point;
 
-import java.util.Iterator;
-import java.util.Stack;
-import java.util.TreeSet;
+import java.util.*;
 
 /**
  * Created by JDJFisher on 19/07/2019.
  */
-public class OcTree implements Iterable<Point<Integer>>
+public class OcTree extends AbstractSet<Point<Integer>>
 {
-    private static final int CHUNK_SIZE = 2048;
-
-    private int width;
-    private int height;
-    private int depth;
-    private int size;
+    private OTNode root;
+    private int rootSize;
+    private int rootMinX;
+    private int rootMinY;
+    private int rootMinZ;
     private int points;
     private int nodes;
-    private OTNode root;
 
-    // empty constructor
-    public OcTree(int width, int height, int depth)
+    // default constructor
+    public OcTree()
     {
-        this.width = width;
-        this.height = height;
-        this.depth = depth;
+        root = new OTNode();
+        rootSize = 1;
+        rootMinX = 0;
+        rootMinY = 0;
+        rootMinZ = 0;
         points = 0;
         nodes = 1;
-        size = 1;
-
-        // set the size to the first power of 2 that is greater than all dimensions
-        while (size < Math.max(Math.max(width, height), depth)) size <<= 1;
-
-        root = new OTNode();
-    }
-
-    // pixel constructor
-    public OcTree(boolean[] pixels, int width, int height, int depth)
-    {
-        this(width, height, depth);
-
-        if (pixels.length != width * height * depth) throw new IllegalArgumentException("Invalid array size");
-
-        for (int i = 0; i < depth; i+= CHUNK_SIZE)
-        {
-            for (int j = 0; j < height; j += CHUNK_SIZE)
-            {
-                for (int k = 0; k < width; k += CHUNK_SIZE)
-                {
-                    // iterate over chunk index range
-                    for (int z = i; z < i + CHUNK_SIZE && z < depth; z++)
-                    {
-                        for (int y = j; y < j + CHUNK_SIZE && y < height; y++)
-                        {
-                            for (int x = k; x < k + CHUNK_SIZE && x < width; x++)
-                            {
-                                if (pixels[x + (y * width) + (z * width * height)]) add(x, y, z);
-                            }
-                        }
-                    }
-
-                    // optimise chunk before moving on
-                    optimise();
-                }
-            }
-        }
-
-        optimise();
-    }
-
-    // point constructor
-    public OcTree(TreeSet<Point<Integer>> points, int width, int height, int depth)
-    {
-        this(width, height, depth);
-
-        for (Point<Integer> p : points)
-        {
-            add(p.getX(), p.getY(), p.getZ());
-        }
-
-        optimise();
     }
 
     // copy constructor
     public OcTree(OcTree ot)
     {
-        this.width = ot.width;
-        this.height = ot.height;
-        this.depth = ot.depth;
-        this.size = ot.size;
-        this.points = ot.points;
-        this.nodes = ot.nodes;
-
         root = new OTNode(ot.root);
+        rootSize = ot.rootSize;
+        rootMinX = ot.rootMinX;
+        rootMinY = ot.rootMinY;
+        rootMinZ = ot.rootMinZ;
+        points = ot.points;
+        nodes = ot.nodes;
     }
 
     // determine whether there is a point stored at the specified coordinates
+    public boolean contains(Point<Integer> point)
+    {
+        return contains(point.getX(), point.getY(), point.getZ());
+    }
+
     public boolean contains(int x, int y, int z)
     {
-        if (x < 0 || x >= width)  throw new IndexOutOfBoundsException("Coordinate out of bounds! (x: " + x + ")");
-        if (y < 0 || y >= height) throw new IndexOutOfBoundsException("Coordinate out of bounds! (y: " + y + ")");
-        if (z < 0 || z >= depth)  throw new IndexOutOfBoundsException("Coordinate out of bounds! (z: " + z + ")");
+        // if the coordinates are out of the root nodes span return false
+        if (x < rootMinX || x >= rootMinX + rootSize ||
+            y < rootMinY || y >= rootMinY + rootSize ||
+            z < rootMinZ || z >= rootMinZ + rootSize) return false;
 
-        return contains(root, x, y, z, size, 0, 0, 0);
+        return contains(root, x, y, z, rootSize, rootMinX, rootMinY, rootMinZ);
     }
 
     private boolean contains(OTNode node, int x, int y, int z, int size, int minX, int minY, int minZ)
     {
-        // recursively select sub-quadrants until the leaf node encoding the coordinate pair is found
+        // recursively select the sub-node that contains the coordinates until a leaf node is found
         if (node.isDivided())
         {
             final int halfSize = size / 2;
@@ -151,43 +101,78 @@ public class OcTree implements Iterable<Point<Integer>>
             }
         }
 
-        // return leaf value
+        // return the value of the leaf
         return node.coloured;
     }
 
     // add a point to the structure
-    public void add(int x, int y, int z)
+    public boolean add(Point<Integer> point)
     {
-        set(x, y, z, true);
+        return add(point.getX(), point.getY(), point.getZ());
+    }
+
+    public boolean add(int x, int y, int z)
+    {
+        // while the coordinates are out of the root nodes span, increase the size of the root appropriately
+        while (x < rootMinX || y < rootMinY || z < rootMinZ)
+        {
+            OTNode newRoot = new OTNode();
+            newRoot.subDivide();
+            newRoot.use = root;
+
+            rootMinX -= rootSize;
+            rootMinY -= rootSize;
+            rootMinZ -= rootSize;
+            rootSize *= 2;
+            root = newRoot;
+        }
+
+        while (x >= rootMinX + rootSize || y >= rootMinY + rootSize || z >= rootMinZ + rootSize)
+        {
+            OTNode newRoot = new OTNode();
+            newRoot.subDivide();
+            newRoot.lnw = root;
+
+            rootSize *= 2;
+            root = newRoot;
+        }
+
+        return set(x, y, z, true);
     }
 
     // remove a point from the structure
-    public void remove(int x, int y, int z)
+    public boolean remove(Point<Integer> point)
     {
-        set(x, y, z, false);
+        return remove(point.getX(), point.getY(), point.getZ());
+    }
+
+    public boolean remove(int x, int y, int z)
+    {
+        // if the coordinates are out of the root nodes span return false
+        if (x < rootMinX || x >= rootMinX + rootSize ||
+            y < rootMinY || y >= rootMinY + rootSize ||
+            z < rootMinZ || z >= rootMinZ + rootSize) return false;
+
+        return set(x, y, z, false);
     }
 
     // set the point state for a given coordinate pair
-    public void set(int x, int y, int z, boolean b)
+    public boolean set(int x, int y, int z, boolean b)
     {
-        if (x < 0 || x >= width)  throw new IndexOutOfBoundsException("Coordinate out of bounds! (x: " + x + ")");
-        if (y < 0 || y >= height) throw new IndexOutOfBoundsException("Coordinate out of bounds! (y: " + y + ")");
-        if (z < 0 || z >= depth)  throw new IndexOutOfBoundsException("Coordinate out of bounds! (z: " + z + ")");
-
-        set(root, x, y, z, b, size, 0, 0, 0);
+        return set(root, x, y, z, b, rootSize, rootMinX, rootMinY, rootMinZ);
     }
 
-    private void set(OTNode node, int x, int y, int z, boolean b, int size, int minX, int minY, int minZ)
+    private boolean set(OTNode node, int x, int y, int z, boolean b, int size, int minX, int minY, int minZ)
     {
         if (node.isLeaf())
         {
-            if (node.coloured == b) return;
+            if (node.coloured == b) return false;
 
             if (size == 1)
             {
                 node.coloured = b;
                 points += b ? 1 : -1;
-                return;
+                return true;
             }
 
             node.subDivide();
@@ -201,39 +186,39 @@ public class OcTree implements Iterable<Point<Integer>>
 
         if (x < midX && y < midY && z < midZ)
         {
-            set(node.lnw, x, y, z, b, halfSize, minX, minY, minZ);
+            return set(node.lnw, x, y, z, b, halfSize, minX, minY, minZ);
         }
         else if (x >= midX && y < midY && z < midZ)
         {
-            set(node.lne, x, y, z, b, halfSize, midX, minY, minZ);
+            return set(node.lne, x, y, z, b, halfSize, midX, minY, minZ);
         }
         else if (x < midX && y >= midY && z < midZ)
         {
-            set(node.lsw, x, y, z, b, halfSize, minX, midY, minZ);
+            return set(node.lsw, x, y, z, b, halfSize, minX, midY, minZ);
         }
         else if (x >= midX && y >= midY && z < midZ)
         {
-            set(node.lse, x, y, z, b, halfSize, midX, midY, minZ);
+            return set(node.lse, x, y, z, b, halfSize, midX, midY, minZ);
         }
         else  if (x < midX && y < midY && z >= midZ)
         {
-            set(node.unw, x, y, z, b, halfSize, minX, minY, midZ);
+            return set(node.unw, x, y, z, b, halfSize, minX, minY, midZ);
         }
         else if (x >= midX && y < midY && z >= midZ)
         {
-            set(node.une, x, y, z, b, halfSize, midX, minY, midZ);
+            return set(node.une, x, y, z, b, halfSize, midX, minY, midZ);
         }
         else if (x < midX && y >= midY && z >= midZ)
         {
-            set(node.usw, x, y, z, b, halfSize, minX, midY, midZ);
+            return set(node.usw, x, y, z, b, halfSize, minX, midY, midZ);
         }
         else
         {
-            set(node.use, x, y, z, b, halfSize, midX, midY, midZ);
+            return set(node.use, x, y, z, b, halfSize, midX, midY, midZ);
         }
     }
 
-    // optimise the OcTree by merging sub-sectors encoding a uniform value
+    // optimise the OcTree by merging sub-nodes encoding a uniform value
     public void optimise()
     {
         optimise(root);
@@ -243,7 +228,7 @@ public class OcTree implements Iterable<Point<Integer>>
     {
         if (node.isDivided())
         {
-            // attempt to optimise sub-quadrants first
+            // attempt to optimise sub-nodes first
             optimise(node.lnw);
             optimise(node.lne);
             optimise(node.lsw);
@@ -253,121 +238,31 @@ public class OcTree implements Iterable<Point<Integer>>
             optimise(node.usw);
             optimise(node.use);
 
-            // if all the sub-quadrants are equivalent, dispose of them
+            // if all the sub-nodes are equivalent, dispose of them
             if (
-                    node.lnw.equals(node.lne) && node.lne.equals(node.lsw) && node.lsw.equals(node.lse) && node.lse.equals(node.unw) &&
-                            node.unw.equals(node.une) && node.une.equals(node.usw) && node.usw.equals(node.use)
-                    )
+                node.lnw.equals(node.lne) && node.lne.equals(node.lsw) && node.lsw.equals(node.lse) && node.lse.equals(node.unw) &&
+                node.unw.equals(node.une) && node.une.equals(node.usw) && node.usw.equals(node.use)
+               )
             {
                 node.coloured = node.unw.coloured;
 
-                // destroy the redundant sub-sectors
+                // destroy the redundant sub-nodes
                 node.lnw = node.lne = node.lsw = node.lse = node.unw = node.une = node.usw = node.use = null;
                 nodes -= 8;
             }
         }
     }
 
-    // export the QuadTress points into an list of points
-    public TreeSet<Point<Integer>> getPoints()
+    public TreeSet<Point<Integer>> getEdgePoints(boolean is2D)
     {
         TreeSet<Point<Integer>> points = new TreeSet<>();
 
-        getPoints(root, points, size, 0, 0, 0);
+        getEdgePoints(root, points, is2D, rootSize, rootMinX, rootMinY, rootMinZ);
 
         return points;
     }
 
-    private void getPoints(OTNode node, TreeSet<Point<Integer>> points, int size, int minX, int minY, int minZ)
-    {
-        // if this quadrant encodes no data, search the sub-quadrants for data
-        if (node.isDivided())
-        {
-            final int halfSize = size / 2;
-            final int midX = minX + halfSize;
-            final int midY = minY + halfSize;
-            final int midZ = minZ + halfSize;
-
-            getPoints(node.lnw, points, halfSize, minX, minY, minZ);
-            getPoints(node.lne, points, halfSize, midX, minY, minZ);
-            getPoints(node.lsw, points, halfSize, minX, midY, minZ);
-            getPoints(node.lse, points, halfSize, midX, midY, minZ);
-            getPoints(node.unw, points, halfSize, minX, minY, midZ);
-            getPoints(node.une, points, halfSize, midX, minY, midZ);
-            getPoints(node.usw, points, halfSize, minX, midY, midZ);
-            getPoints(node.use, points, halfSize, midX, midY, midZ);
-        }
-        // if the leaf is coloured, add all the points in the quadrant to the list
-        else if (node.coloured)
-        {
-            for (int z = minZ; z < minZ + size && z < depth; z++)
-            {
-                for (int y = minY; y < minY + size && y < height; y++)
-                {
-                    for (int x = minX; x < minX + size && x < width; x++)
-                    {
-                        points.add(new Point<>(x, y, z));
-                    }
-                }
-            }
-        }
-    }
-
-    // export the QuadTress points into an array of pixels
-    public boolean[] getPixels()
-    {
-        boolean[] pixels = new boolean[width * height * depth];
-
-        getPixels(root, pixels, size, 0, 0, 0);
-
-        return pixels;
-    }
-
-    private void getPixels(OTNode node, boolean[] pixels, int size, int minX, int minY, int minZ)
-    {
-        // if this quadrant encodes no data, search the sub-quadrants for data
-        if (node.isDivided())
-        {
-            final int halfSize = size / 2;
-            final int midX = minX + halfSize;
-            final int midY = minY + halfSize;
-            final int midZ = minZ + halfSize;
-
-            getPixels(node.lnw, pixels, halfSize, minX, minY, minZ);
-            getPixels(node.lne, pixels, halfSize, midX, minY, minZ);
-            getPixels(node.lsw, pixels, halfSize, minX, midY, minZ);
-            getPixels(node.lse, pixels, halfSize, midX, midY, minZ);
-            getPixels(node.unw, pixels, halfSize, minX, minY, midZ);
-            getPixels(node.une, pixels, halfSize, midX, minY, midZ);
-            getPixels(node.usw, pixels, halfSize, minX, midY, midZ);
-            getPixels(node.use, pixels, halfSize, midX, midY, midZ);
-        }
-        // if the leaf is coloured, colour the pixel array across the index range spanned by the quadrant
-        else if (node.coloured)
-        {
-            for (int z = minZ; z < minZ + size && z < depth; z++)
-            {
-                for (int y = minY; y < minY + size && y < height; y++)
-                {
-                    for (int x = minX; x < minX + size && x < width; x++)
-                    {
-                        pixels[x + (y * width) + (z * width * height)] = true;
-                    }
-                }
-            }
-        }
-    }
-
-    public TreeSet<Point<Integer>> getEdgePoints()
-    {
-        TreeSet<Point<Integer>> points = new TreeSet<>();
-
-        getEdgePoints(root, points, size, 0, 0, 0);
-
-        return points;
-    }
-
-    private void getEdgePoints(OTNode node, TreeSet<Point<Integer>> points, int size, int minX, int minY, int minZ)
+    private void getEdgePoints(OTNode node, TreeSet<Point<Integer>> points, boolean is2d, int size, int minX, int minY, int minZ)
     {
         if (node.isDivided())
         {
@@ -376,51 +271,65 @@ public class OcTree implements Iterable<Point<Integer>>
             final int midY = minY + halfSize;
             final int midZ = minZ + halfSize;
 
-            getEdgePoints(node.lnw, points, halfSize, minX, minY, minZ);
-            getEdgePoints(node.lne, points, halfSize, midX, minY, minZ);
-            getEdgePoints(node.lsw, points, halfSize, minX, midY, minZ);
-            getEdgePoints(node.lse, points, halfSize, midX, midY, minZ);
-            getEdgePoints(node.unw, points, halfSize, minX, minY, midZ);
-            getEdgePoints(node.une, points, halfSize, midX, minY, midZ);
-            getEdgePoints(node.usw, points, halfSize, minX, midY, midZ);
-            getEdgePoints(node.use, points, halfSize, midX, midY, midZ);
+            getEdgePoints(node.lnw, points, is2d, halfSize, minX, minY, minZ);
+            getEdgePoints(node.lne, points, is2d, halfSize, midX, minY, minZ);
+            getEdgePoints(node.lsw, points, is2d, halfSize, minX, midY, minZ);
+            getEdgePoints(node.lse, points, is2d, halfSize, midX, midY, minZ);
+            getEdgePoints(node.unw, points, is2d, halfSize, minX, minY, midZ);
+            getEdgePoints(node.une, points, is2d, halfSize, midX, minY, midZ);
+            getEdgePoints(node.usw, points, is2d, halfSize, minX, midY, midZ);
+            getEdgePoints(node.use, points, is2d, halfSize, midX, midY, midZ);
         }
         else if (node.coloured)
         {
+
             final int maxX = minX + size - 1;
             final int maxY = minY + size - 1;
             final int maxZ = minZ + size - 1;
 
+            for (int z = minZ; z <= maxZ; z++)
+            {
+                if (!contains(minX - 1, minY, z) || !contains(minX, minY - 1, z))
+                {
+                    points.add(new Point<>(minX, minY, z));
+                }
+
+                if (!contains(maxX + 1, minY, z) || !contains(maxX, minY - 1, z))
+                {
+                    points.add(new Point<>(maxX, minY, z));
+                }
+
+                if (!contains(minX - 1, maxY, z) || !contains(minX, maxY + 1, z))
+                {
+                    points.add(new Point<>(minX, maxY, z));
+                }
+
+                if (!contains(maxX + 1, maxY, z) || !contains(maxX, maxY + 1, z))
+                {
+                    points.add(new Point<>(maxX, maxY, z));
+                }
+            }
+
+            if (is2d) return;
+
             for (int x = minX; x <= maxX; x++)
             {
-                if (
-                        minY - 1 <= 0 || !contains(x, minY - 1, minZ) ||
-                                minZ - 1 <= 0 || !contains(x, minY, minZ - 1)
-                        )
+                if (!contains(x, minY - 1, minZ) || !contains(x, minY, minZ - 1))
                 {
                     points.add(new Point<>(x, minY, minZ));
                 }
 
-                if (
-                        maxY + 1 >= height || !contains(x, maxY + 1, minZ) ||
-                                minZ - 1 <= 0      || !contains(x, maxY, minZ - 1)
-                        )
+                if (!contains(x, maxY + 1, minZ) || !contains(x, maxY, minZ - 1))
                 {
                     points.add(new Point<>(x, maxY, minZ));
                 }
 
-                if (
-                        minY - 1 <= 0     || !contains(x, minY - 1, maxZ) ||
-                                maxZ + 1 >= depth || !contains(x, minY, maxZ + 1)
-                        )
+                if (!contains(x, minY - 1, maxZ) || !contains(x, minY, maxZ + 1))
                 {
                     points.add(new Point<>(x, minY, maxZ));
                 }
 
-                if (
-                        maxY + 1 >= height || !contains(x, maxY + 1, maxZ) ||
-                                maxZ + 1 >= depth  || !contains(x, maxY, maxZ + 1)
-                        )
+                if (!contains(x, maxY + 1, maxZ) || !contains(x, maxY, maxZ + 1))
                 {
                     points.add(new Point<>(x, maxY, maxZ));
                 }
@@ -428,71 +337,24 @@ public class OcTree implements Iterable<Point<Integer>>
 
             for (int y = minY; y <= maxY; y++)
             {
-                if (
-                        minX - 1 <= 0 || !contains(minX - 1, y, minZ) ||
-                                minZ - 1 <= 0 || !contains(minX, y, minZ - 1)
-                        )
+                if (!contains(minX - 1, y, minZ) || !contains(minX, y, minZ - 1))
                 {
                     points.add(new Point<>(minX, y, minZ));
                 }
 
-                if (
-                        maxX + 1 >= width || !contains(maxX + 1, y, minZ) ||
-                                minZ - 1 <= 0     || !contains(maxX, y, minZ - 1)
-                        )
+                if (!contains(maxX + 1, y, minZ) || !contains(maxX, y, minZ - 1))
                 {
                     points.add(new Point<>(maxX, y, minZ));
                 }
 
-                if (
-                        minX - 1 <= 0     || !contains(minX - 1, y, maxZ) ||
-                                maxZ + 1 >= depth || !contains(minX, y, maxZ + 1)
-                        )
+                if (!contains(minX - 1, y, maxZ) || !contains(minX, y, maxZ + 1))
                 {
                     points.add(new Point<>(minX, y, maxZ));
                 }
 
-                if (
-                        maxX + 1 >= width || !contains(maxX + 1, y, maxZ) ||
-                                maxZ + 1 >= depth || !contains(maxX, y, maxZ + 1)
-                        )
+                if (!contains(maxX + 1, y, maxZ) || !contains(maxX, y, maxZ + 1))
                 {
                     points.add(new Point<>(maxX, y, maxZ));
-                }
-            }
-
-            for (int z = minZ; z <= maxZ; z++)
-            {
-                if (
-                        minX - 1 <= 0 || !contains(minX - 1, minY, z) ||
-                                minY - 1 <= 0 || !contains(minX, minY - 1, z)
-                        )
-                {
-                    points.add(new Point<>(minX, minY, z));
-                }
-
-                if (
-                        maxX + 1 >= width || !contains(maxX + 1, minY, z) ||
-                                minY - 1 <= 0     || !contains(maxX, minY - 1, z)
-                        )
-                {
-                    points.add(new Point<>(maxX, minY, z));
-                }
-
-                if (
-                        minX - 1 <= 0      || !contains(minX - 1, maxY, z) ||
-                                maxY + 1 >= height || !contains(minX, maxY + 1, z)
-                        )
-                {
-                    points.add(new Point<>(minX, maxY, z));
-                }
-
-                if (
-                        maxX + 1 >= width  || !contains(maxX + 1, maxY, z) ||
-                                maxY + 1 >= height || !contains(maxX, maxY + 1, z)
-                        )
-                {
-                    points.add(new Point<>(maxX, maxY, z));
                 }
             }
         }
@@ -523,7 +385,7 @@ public class OcTree implements Iterable<Point<Integer>>
     private void recountPoints()
     {
         points = 0;
-        recountPoints(root, size);
+        recountPoints(root, rootSize);
     }
 
     private void recountPoints(OTNode node, int size)
@@ -547,36 +409,53 @@ public class OcTree implements Iterable<Point<Integer>>
         }
     }
 
+    @Override
     public boolean isEmpty()
     {
         return points == 0;
     }
 
+    @Override
     public void clear()
     {
+        root = new OTNode();
+        rootSize = 1;
+        rootMinX = 0;
+        rootMinY = 0;
+        rootMinZ = 0;
         points = 0;
         nodes = 1;
-        root = new OTNode();
     }
 
-    public int getWidth()
+    @Override
+    public int size()
     {
-        return width;
+        return points;
     }
 
-    public int getHeight()
+    public OTNode getRoot()
     {
-        return height;
+        return root;
     }
 
-    public int getDepth()
+    public int getRootSize()
     {
-        return depth;
+        return rootSize;
     }
 
-    public int getSize()
+    public int getRootMinX()
     {
-        return size;
+        return rootMinX;
+    }
+
+    public int getRootMinY()
+    {
+        return rootMinY;
+    }
+
+    public int getRootMinZ()
+    {
+        return rootMinZ;
     }
 
     public int getPointCount()
@@ -587,40 +466,6 @@ public class OcTree implements Iterable<Point<Integer>>
     public int getNodeCount()
     {
         return nodes;
-    }
-
-    public OTNode getRoot()
-    {
-        return root;
-    }
-
-    @Override
-    public boolean equals(Object o)
-    {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        OcTree ot = (OcTree) o;
-
-        return width == ot.width &&
-                height == ot.height &&
-                depth == ot.depth &&
-                points == ot.points &&
-                nodes == ot.nodes &&
-                root.equals(ot.root);
-    }
-
-    @Override
-    public int hashCode()
-    {
-        int result = size;
-        result = 31 * result + width;
-        result = 31 * result + height;
-        result = 31 * result + depth;
-        result = 31 * result + points;
-        result = 31 * result + nodes;
-        result = 31 * result + (root != null ? root.hashCode() : 0);
-        return result;
     }
 
     @Override
@@ -650,10 +495,10 @@ public class OcTree implements Iterable<Point<Integer>>
             minZStack = new Stack<>();
 
             nodeStack.push(root);
-            sizeStack.push(size);
-            minXStack.push(0);
-            minYStack.push(0);
-            minZStack.push(0);
+            sizeStack.push(rootSize);
+            minXStack.push(rootMinX);
+            minYStack.push(rootMinY);
+            minZStack.push(rootMinZ);
 
             maxX = maxY = maxZ = Integer.MIN_VALUE;
 

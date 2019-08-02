@@ -22,10 +22,7 @@ public class Main
     {
         QuadTree qt = new QuadTree();
 
-        for (Point<Integer> point : loadPoints(name))
-        {
-            qt.add(point);
-        }
+        qt.addAll(loadPoints(name));
 
         qt.optimise();
 

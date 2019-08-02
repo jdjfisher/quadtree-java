@@ -4,14 +4,12 @@ import com.sun.istack.internal.Nullable;
 import wbif.sjx.common.Object.Point;
 
 import java.awt.*;
-import java.util.Iterator;
-import java.util.Stack;
-import java.util.TreeSet;
+import java.util.*;
 
 /**
  * Created by JDJFisher on 9/07/2019.
  */
-public class QuadTree implements Iterable<Point<Integer>>
+public class QuadTree extends AbstractSet<Point<Integer>>
 {
     private QTNode root;
     private int rootSize;
@@ -51,7 +49,8 @@ public class QuadTree implements Iterable<Point<Integer>>
     public boolean contains(int x, int y)
     {
         // if the coordinates are out of the root nodes span return false
-        if (x < rootMinX || y < rootMinY || x >= rootMinX + rootSize || y >= rootMinY + rootSize) return false;
+        if (x < rootMinX || x >= rootMinX + rootSize ||
+            y < rootMinY || y >= rootMinY + rootSize) return false;
 
         return contains(root, x, y, rootSize, rootMinX, rootMinY);
     }
@@ -130,7 +129,8 @@ public class QuadTree implements Iterable<Point<Integer>>
     public boolean remove(int x, int y)
     {
         // if the coordinates are out of the root nodes span return false
-        if (x < rootMinX || y < rootMinY || x >= rootMinX + rootSize || y >= rootMinY + rootSize) return false;
+        if (x < rootMinX || x >= rootMinX + rootSize ||
+            y < rootMinY || y >= rootMinY + rootSize) return false;
 
         return set(x, y, false);
     }
@@ -368,11 +368,13 @@ public class QuadTree implements Iterable<Point<Integer>>
         }
     }
 
+    @Override
     public boolean isEmpty()
     {
         return points == 0;
     }
 
+    @Override
     public void clear()
     {
         root = new QTNode();
@@ -381,6 +383,22 @@ public class QuadTree implements Iterable<Point<Integer>>
         rootMinY = 0;
         points = 0;
         nodes = 1;
+    }
+
+    @Override
+    public int size()
+    {
+        return points;
+    }
+
+    public QTNode getRoot()
+    {
+        return root;
+    }
+
+    public int getRootSize()
+    {
+        return rootSize;
     }
 
     public int getRootMinX()
@@ -393,11 +411,6 @@ public class QuadTree implements Iterable<Point<Integer>>
         return rootMinY;
     }
 
-    public int getRootSize()
-    {
-        return rootSize;
-    }
-
     public int getPointCount()
     {
         return points;
@@ -406,38 +419,6 @@ public class QuadTree implements Iterable<Point<Integer>>
     public int getNodeCount()
     {
         return nodes;
-    }
-
-    public QTNode getRoot()
-    {
-        return root;
-    }
-
-    @Override
-    public boolean equals(Object o)
-    {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        QuadTree qt = (QuadTree) o;
-
-        return rootMinX == qt.rootMinX &&
-               rootMinY == qt.rootMinY &&
-               points == qt.points &&
-               nodes == qt.nodes &&
-               root.equals(qt.root);
-    }
-
-    @Override
-    public int hashCode()
-    {
-        int result = rootSize;
-        result = 31 * result + rootMinX;
-        result = 31 * result + rootMinY;
-        result = 31 * result + points;
-        result = 31 * result + nodes;
-        result = 31 * result + (root != null ? root.hashCode() : 0);
-        return result;
     }
 
     @Override
@@ -453,9 +434,9 @@ public class QuadTree implements Iterable<Point<Integer>>
         private final Stack<Integer> minXStack;
         private final Stack<Integer> minYStack;
 
-        private int curX, curY;
-        private int curMinX, curMinY;
-        private int curMaxX, curMaxY;
+        private int x, y;
+        private int minX, minY;
+        private int maxX, maxY;
 
         public QuadTreeIterator()
         {
@@ -469,7 +450,7 @@ public class QuadTree implements Iterable<Point<Integer>>
             minXStack.push(rootMinX);
             minYStack.push(rootMinY);
 
-            curMaxX = curMaxY = Integer.MIN_VALUE;
+            maxX = maxY = Integer.MIN_VALUE;
 
             findNextColouredLeaf();
         }
@@ -477,13 +458,13 @@ public class QuadTree implements Iterable<Point<Integer>>
         @Override
         public boolean hasNext()
         {
-            return !nodeStack.empty() || curY <= curMaxY;
+            return !nodeStack.empty() || y <= maxY;
         }
 
         @Override
         public Point<Integer> next()
         {
-            Point<Integer> currentPoint = new Point<>(curX, curY, 0);
+            Point<Integer> currentPoint = new Point<>(x, y, 0);
 
             findNextPoint();
 
@@ -492,14 +473,14 @@ public class QuadTree implements Iterable<Point<Integer>>
 
         private void findNextPoint()
         {
-            curX++;
+            x++;
 
-            if (curX > curMaxX)
+            if (x > maxX)
             {
-                curX = curMinX;
-                curY++;
+                x = minX;
+                y++;
 
-                if (curY > curMaxY)
+                if (y > maxY)
                 {
                     findNextColouredLeaf();
                 }
@@ -512,28 +493,28 @@ public class QuadTree implements Iterable<Point<Integer>>
             {
                 final QTNode node = nodeStack.pop();
                 final int size = sizeStack.pop();
-                curMinX = minXStack.pop();
-                curMinY = minYStack.pop();
+                minX = minXStack.pop();
+                minY = minYStack.pop();
 
                 if (node.isDivided())
                 {
                     final int halfSize = size / 2;
-                    final int midX = curMinX + halfSize;
-                    final int midY = curMinY + halfSize;
+                    final int midX = minX + halfSize;
+                    final int midY = minY + halfSize;
 
                     nodeStack.push(node.nw);
                     sizeStack.push(halfSize);
-                    minXStack.push(curMinX);
-                    minYStack.push(curMinY);
+                    minXStack.push(minX);
+                    minYStack.push(minY);
 
                     nodeStack.push(node.ne);
                     sizeStack.push(halfSize);
                     minXStack.push(midX);
-                    minYStack.push(curMinY);
+                    minYStack.push(minY);
 
                     nodeStack.push(node.sw);
                     sizeStack.push(halfSize);
-                    minXStack.push(curMinX);
+                    minXStack.push(minX);
                     minYStack.push(midY);
 
                     nodeStack.push(node.se);
@@ -543,11 +524,11 @@ public class QuadTree implements Iterable<Point<Integer>>
                 }
                 else if (node.coloured)
                 {
-                    curMaxX = curMinX + size - 1;
-                    curMaxY = curMinY + size - 1;
+                    maxX = minX + size - 1;
+                    maxY = minY + size - 1;
 
-                    curX = curMinX;
-                    curY = curMinY;
+                    x = minX;
+                    y = minY;
 
                     return;
                 }
