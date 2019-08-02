@@ -8,7 +8,7 @@ import java.awt.*;
  */
 public class Show
 {
-    private static final int FRAME_SIZE = 800;
+    private static final int MAX_FRAME_SIZE = 800;
     private JFrame frame;
     private QuadTree qt;
     private int cellSize;
@@ -35,8 +35,9 @@ public class Show
 
     private void updateFrameSize()
     {
-        cellSize = Math.max(1, FRAME_SIZE / (Math.max(qt.getWidth(), qt.getHeight())));
-        frame.setSize(Math.min(cellSize * qt.getWidth(), FRAME_SIZE), Math.min(cellSize * qt.getHeight(), FRAME_SIZE) + 30);
+        cellSize = Math.max(1, MAX_FRAME_SIZE / qt.getRootSize());
+        int frameSize = Math.min(cellSize * qt.getRootSize(), MAX_FRAME_SIZE);
+        frame.setSize(frameSize, frameSize + 30);
     }
 
     private static class DrawPane extends JPanel
@@ -53,11 +54,11 @@ public class Show
         @Override
         protected void paintComponent(Graphics g)
         {
-            if(qt.getSize() > FRAME_SIZE)
+            if(qt.getRootSize() > MAX_FRAME_SIZE)
             {
                 g.setFont(new Font("Arial", Font.PLAIN, 40));
                 g.setColor(Color.WHITE);
-                g.drawString("Quad Tree too big to display!", FRAME_SIZE / 2 - 240, FRAME_SIZE / 2 - 50);
+                g.drawString("Quad Tree too big to display!", MAX_FRAME_SIZE / 2 - 240, MAX_FRAME_SIZE / 2 - 50);
             }
             else
             {

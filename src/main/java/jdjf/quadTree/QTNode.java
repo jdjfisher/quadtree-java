@@ -52,6 +52,11 @@ public class QTNode
         return nw == null;
     }
 
+    public QTNode[] getChildren()
+    {
+        return new QTNode[] {nw, ne, sw, se};
+    }
+
     @Override
     public boolean equals(Object o)
     {

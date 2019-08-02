@@ -20,35 +20,19 @@ public class Main
 
     public static QuadTree loadQuadTree(String name)
     {
-        PixelData data = loadPixelData(name);
-        return new QuadTree(data.pixels, data.width, data.height);
+        QuadTree qt = new QuadTree();
+
+        for (Point<Integer> point : loadPoints(name))
+        {
+            qt.add(point);
+        }
+
+        qt.optimise();
+
+        return qt;
     }
 
-    public static PixelData loadPixelData(String name)
-    {
-        try
-        {
-            BufferedImage bi = ImageIO.read(Main.class.getResource("/images/" + name));
-            boolean[] pixels = new boolean[bi.getWidth() * bi.getHeight()];
-
-            for (int y = 0; y < bi.getHeight(); y++)
-            {
-                for (int x = 0; x < bi.getWidth(); x++)
-                {
-                    pixels[x + y * bi.getWidth()] = bi.getRGB(x, y) == -0x1000000;
-                }
-            }
-
-            return new PixelData(pixels, bi.getWidth(), bi.getHeight());
-        }
-        catch (Exception e)
-        {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    public static PointData loadPointData(String name)
+    public static TreeSet<Point<Integer>> loadPoints(String name)
     {
         try
         {
@@ -63,7 +47,7 @@ public class Main
                 }
             }
 
-            return new PointData(points, bi.getWidth(), bi.getHeight());
+            return points;
         }
         catch (Exception e)
         {
@@ -74,18 +58,14 @@ public class Main
 
     public static void exportQuadTree(QuadTree qt, String name)
     {
-        exportQuadTree(qt, name, false, true);
+        exportQuadTree(qt, name, true);
     }
 
-    public static void exportQuadTree(QuadTree qt, String name, boolean showPadding, boolean showNodes)
+    public static void exportQuadTree(QuadTree qt, String name, boolean showNodes)
     {
         try
         {
-            BufferedImage bi = new BufferedImage(
-                    showPadding ? qt.getSize() : qt.getWidth(),
-                    showPadding ? qt.getSize() : qt.getHeight(),
-                    BufferedImage.TYPE_INT_ARGB
-            );
+            BufferedImage bi = new BufferedImage(qt.getRootSize() , qt.getRootSize(), BufferedImage.TYPE_INT_ARGB);
 
             qt.draw(bi.getGraphics(), 1, showNodes);
             ImageIO.write(bi, "png", new File("./src/main/resources/output/" + name));
@@ -96,43 +76,17 @@ public class Main
         }
     }
 
-    public static void exportPixelData(PixelData data, String name)
+    public static void exportPoints(TreeSet<Point<Integer>> points, int size, String name)
     {
         try
         {
-            BufferedImage bi = new BufferedImage(data.width, data.height, BufferedImage.TYPE_INT_ARGB);
+            BufferedImage bi = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
 
             Graphics g = bi.getGraphics();
             g.setColor(Color.WHITE);
-            g.fillRect(0, 0, data.width, data.height);
+            g.fillRect(0, 0, size, size);
             g.setColor(Color.BLACK);
-            for (int y = 0; y < data.height; y++)
-            {
-                for (int x = 0; x < data.width; x++)
-                {
-                    if (data.pixels[x + y * data.width]) g.fillRect(x, y, 1, 1);
-                }
-            }
-
-            ImageIO.write(bi, "png", new File("./src/main/resources/output/" + name));
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
-    }
-
-    public static void exportPointData(PointData data, String name)
-    {
-        try
-        {
-            BufferedImage bi = new BufferedImage(data.width, data.height, BufferedImage.TYPE_INT_ARGB);
-
-            Graphics g = bi.getGraphics();
-            g.setColor(Color.WHITE);
-            g.fillRect(0, 0, data.width, data.height);
-            g.setColor(Color.BLACK);
-            for (Point p : data.points)
+            for (Point p : points)
             {
                 g.fillRect(p.getX().intValue(), p.getY().intValue(), 1, 1);
             }
