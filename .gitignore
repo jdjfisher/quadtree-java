@@ -1,8 +1,8 @@
 
 \.idea/
-
+.vscode/
+.gradle
 target/
-
+build
 QuadTrees\.iml
-
 src/main/resources/output/

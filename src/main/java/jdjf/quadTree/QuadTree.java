@@ -1,7 +1,6 @@
 package jdjf.quadTree;
 
-import com.sun.istack.internal.Nullable;
-import wbif.sjx.common.Object.Point;
+import sjcross.sjcommon.Point;
 
 import java.awt.*;
 import java.util.Stack;
@@ -346,7 +345,7 @@ public class QuadTree implements Iterable<Point<Integer>>
         }
     }
 
-    public void getEdgePoints3D(TreeSet<Point<Integer>> points, @Nullable QuadTree above, @Nullable QuadTree below, int z)
+    public void getEdgePoints3D(TreeSet<Point<Integer>> points, QuadTree above, QuadTree below, int z)
     {
         getEdgePoints3D(root, points, above, below, z, size, 0, 0);
     }

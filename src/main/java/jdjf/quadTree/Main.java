@@ -1,6 +1,6 @@
 package jdjf.quadTree;
 
-import wbif.sjx.common.Object.Point;
+import sjcross.sjcommon.Point;
 
 import javax.imageio.ImageIO;
 import java.awt.*;

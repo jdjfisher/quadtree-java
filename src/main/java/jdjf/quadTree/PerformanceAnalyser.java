@@ -1,8 +1,7 @@
 package jdjf.quadTree;
 
-//import org.apache.spark.util.SizeEstimator;
-import wbif.sjx.common.Exceptions.IntegerOverflowException;
-import wbif.sjx.common.Object.Volume;
+// import wbif.sjx.common.Exceptions.IntegerOverflowException;
+import sjcross.sjcommon.Volume;
 
 public class PerformanceAnalyser {
     public static void main(String[] args) {
@@ -23,11 +22,11 @@ public class PerformanceAnalyser {
 
         System.out.println("Starting Point loading");
         long startTimePoint = System.currentTimeMillis();
-        try {
+        // try {
             Volume volume = getVolume(data.pixels, data.width, data.height);
-        } catch (IntegerOverflowException e) {
-            System.err.println("Too many points!");
-        }
+        // } catch (IntegerOverflowException e) {
+        //     System.err.println("Too many points!");
+        // }
         long endTimePoint = System.currentTimeMillis();
 
 //        long estimatedSizeQTNode = SizeEstimator.estimate(new QTNode());
@@ -50,7 +49,7 @@ public class PerformanceAnalyser {
 
     }
 
-    Volume getVolume(boolean[] pixels, int width, int height) throws IntegerOverflowException {
+    Volume getVolume(boolean[] pixels, int width, int height) {
         Volume volume = new Volume(1,1,"",true);
 
         for (int y = 0; y < height; y++)
@@ -63,6 +62,5 @@ public class PerformanceAnalyser {
         }
 
         return volume;
-
     }
 }
